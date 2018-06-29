@@ -19,7 +19,9 @@ import TileState from './TileState';
  * @api
  */
 
-export type TileClass = (vt: VectorTile, tilecoord: TileCoord, tileState: TileState, s1: string, s2: string, loadFunc: LoadFunction) => void;
+export interface TileClass {
+	new(tilecoord: TileCoord, tileState: TileState, s1: string, s2: string, loadFunc: LoadFunction): VectorTile;
+}
 
 
 /**
@@ -187,7 +189,7 @@ export default class VectorTile extends Tile {
 		if (this.state === TileState.IDLE) {
 			this.setState(TileState.LOADING);
 			this.tileLoadFunction_(this, this.url_);
-			this.loader_!(null!, null!, NaN!, null!);
+			this.loader_!(null!, NaN!, null!);
 			// todo this.loader_(null, NaN, null, null);
 		}
 	}

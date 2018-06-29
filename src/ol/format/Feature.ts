@@ -112,7 +112,7 @@ export default abstract class FeatureFormat {
 	 * @param {module:ol/format/Feature~ReadOptions=} opt_options Read options.
 	 * @return {module:ol/Feature} Feature.
 	 */
-	public abstract readFeature(source: Document | Node | object | string, opt_options?: ReadOptions): Feature;
+	public abstract readFeature(source: Document | Node | object | string, opt_options?: ReadOptions): Feature | null;
 
 
 	/**
@@ -134,7 +134,7 @@ export default abstract class FeatureFormat {
 	 * @param {module:ol/format/Feature~ReadOptions=} opt_options Read options.
 	 * @return {module:ol/geom/Geometry} Geometry.
 	 */
-	public abstract readGeometry(source: Document | Node | object | string, opt_options?: ReadOptions): Geometry;
+	public abstract readGeometry(source: Document | Node | object | string, opt_options?: ReadOptions): Geometry | null;
 
 
 	/**
@@ -144,7 +144,7 @@ export default abstract class FeatureFormat {
 	 * @param {Document|Node|Object|string} source Source.
 	 * @return {module:ol/proj/Projection} Projection.
 	 */
-	public abstract readProjection(source: Document | Node | object | string): Projection;
+	public abstract readProjection(source: Document | Node | object | string): Projection | null;
 
 
 	/**
@@ -194,7 +194,7 @@ export default abstract class FeatureFormat {
 				dataProjection: opt_options.dataProjection ?
 					opt_options.dataProjection : this.readProjection(source),
 				featureProjection: opt_options.featureProjection
-			};
+			} as ReadOptions;
 		}
 		return this.adaptOptions(options);
 	}

@@ -32,7 +32,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import { listen, unlisten } from '../events';
-import Event from '../events/Event';
+// import Event from '../events/Event';
 import EventTarget from '../events/EventTarget';
 import { MSPOINTER, POINTER, TOUCH } from '../has';
 import PointerEventType from '../pointer/EventType';

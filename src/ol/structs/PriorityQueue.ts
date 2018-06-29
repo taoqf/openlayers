@@ -1,8 +1,13 @@
 /**
  * @module ol/structs/PriorityQueue
  */
-import {assert} from '../asserts';
-import {clear} from '../obj';
+import { assert } from '../asserts';
+import { clear } from '../obj';
+
+/**
+ * @type {number}
+ */
+export const DROP = Infinity;
 
 /**
  * Priority queue.
@@ -19,257 +24,252 @@ import {clear} from '../obj';
  * @struct
  * @template T
  */
-const PriorityQueue = function(priorityFunction, keyFunction) {
+export default class PriorityQueue<T> {
+	private priorityFunction_: (v: T) => number;
+	private keyFunction_: (v: T) => string;
+	private elements_: T[];
+	private priorities_: number[];
+	private queuedElements_: { [element: string]: boolean; };
+	constructor(priorityFunction: (v: T) => number, keyFunction: (v: T) => string) {
 
-  /**
-   * @type {function(T): number}
-   * @private
-   */
-  this.priorityFunction_ = priorityFunction;
+		/**
+		 * @type {function(T): number}
+		 * @private
+		 */
+		this.priorityFunction_ = priorityFunction;
 
-  /**
-   * @type {function(T): string}
-   * @private
-   */
-  this.keyFunction_ = keyFunction;
+		/**
+		 * @type {function(T): string}
+		 * @private
+		 */
+		this.keyFunction_ = keyFunction;
 
-  /**
-   * @type {Array.<T>}
-   * @private
-   */
-  this.elements_ = [];
+		/**
+		 * @type {Array.<T>}
+		 * @private
+		 */
+		this.elements_ = [];
 
-  /**
-   * @type {Array.<number>}
-   * @private
-   */
-  this.priorities_ = [];
+		/**
+		 * @type {Array.<number>}
+		 * @private
+		 */
+		this.priorities_ = [];
 
-  /**
-   * @type {!Object.<string, boolean>}
-   * @private
-   */
-  this.queuedElements_ = {};
+		/**
+		 * @type {!Object.<string, boolean>}
+		 * @private
+		 */
+		this.queuedElements_ = {};
 
-};
+	}
 
-
-/**
- * @type {number}
- */
-export const DROP = Infinity;
-
-
-/**
- * FIXME empty description for jsdoc
- */
-PriorityQueue.prototype.clear = function() {
-  this.elements_.length = 0;
-  this.priorities_.length = 0;
-  clear(this.queuedElements_);
-};
-
-
-/**
- * Remove and return the highest-priority element. O(log N).
- * @return {T} Element.
- */
-PriorityQueue.prototype.dequeue = function() {
-  const elements = this.elements_;
-  const priorities = this.priorities_;
-  const element = elements[0];
-  if (elements.length == 1) {
-    elements.length = 0;
-    priorities.length = 0;
-  } else {
-    elements[0] = elements.pop();
-    priorities[0] = priorities.pop();
-    this.siftUp_(0);
-  }
-  const elementKey = this.keyFunction_(element);
-  delete this.queuedElements_[elementKey];
-  return element;
-};
+	/**
+	 * FIXME empty description for jsdoc
+	 */
+	public clear() {
+		this.elements_.length = 0;
+		this.priorities_.length = 0;
+		clear(this.queuedElements_);
+	}
 
 
-/**
- * Enqueue an element. O(log N).
- * @param {T} element Element.
- * @return {boolean} The element was added to the queue.
- */
-PriorityQueue.prototype.enqueue = function(element) {
-  assert(!(this.keyFunction_(element) in this.queuedElements_),
-    31); // Tried to enqueue an `element` that was already added to the queue
-  const priority = this.priorityFunction_(element);
-  if (priority != DROP) {
-    this.elements_.push(element);
-    this.priorities_.push(priority);
-    this.queuedElements_[this.keyFunction_(element)] = true;
-    this.siftDown_(0, this.elements_.length - 1);
-    return true;
-  }
-  return false;
-};
+	/**
+	 * Remove and return the highest-priority element. O(log N).
+	 * @return {T} Element.
+	 */
+	public dequeue() {
+		const elements = this.elements_;
+		const priorities = this.priorities_;
+		const element = elements[0];
+		if (elements.length === 1) {
+			elements.length = 0;
+			priorities.length = 0;
+		} else {
+			elements[0] = elements.pop()!;
+			priorities[0] = priorities.pop()!;
+			this.siftUp_(0);
+		}
+		const elementKey = this.keyFunction_(element);
+		delete this.queuedElements_[elementKey];
+		return element;
+	}
 
 
-/**
- * @return {number} Count.
- */
-PriorityQueue.prototype.getCount = function() {
-  return this.elements_.length;
-};
+	/**
+	 * Enqueue an element. O(log N).
+	 * @param {T} element Element.
+	 * @return {boolean} The element was added to the queue.
+	 */
+	public enqueue(element: T) {
+		assert(!(this.keyFunction_(element) in this.queuedElements_),
+			31); // Tried to enqueue an `element` that was already added to the queue
+		const priority = this.priorityFunction_(element);
+		if (priority !== DROP) {
+			this.elements_.push(element);
+			this.priorities_.push(priority);
+			this.queuedElements_[this.keyFunction_(element)] = true;
+			this.siftDown_(0, this.elements_.length - 1);
+			return true;
+		}
+		return false;
+	}
 
 
-/**
- * Gets the index of the left child of the node at the given index.
- * @param {number} index The index of the node to get the left child for.
- * @return {number} The index of the left child.
- * @private
- */
-PriorityQueue.prototype.getLeftChildIndex_ = function(index) {
-  return index * 2 + 1;
-};
+	/**
+	 * @return {number} Count.
+	 */
+	public getCount() {
+		return this.elements_.length;
+	}
+
+	/**
+	 * @return {boolean} Is empty.
+	 */
+	public isEmpty() {
+		return this.elements_.length === 0;
+	}
 
 
-/**
- * Gets the index of the right child of the node at the given index.
- * @param {number} index The index of the node to get the right child for.
- * @return {number} The index of the right child.
- * @private
- */
-PriorityQueue.prototype.getRightChildIndex_ = function(index) {
-  return index * 2 + 2;
-};
+	/**
+	 * @param {string} key Key.
+	 * @return {boolean} Is key queued.
+	 */
+	public isKeyQueued(key: string) {
+		return key in this.queuedElements_;
+	}
 
 
-/**
- * Gets the index of the parent of the node at the given index.
- * @param {number} index The index of the node to get the parent for.
- * @return {number} The index of the parent.
- * @private
- */
-PriorityQueue.prototype.getParentIndex_ = function(index) {
-  return (index - 1) >> 1;
-};
+	/**
+	 * @param {T} element Element.
+	 * @return {boolean} Is queued.
+	 */
+	public isQueued(element: T) {
+		return this.isKeyQueued(this.keyFunction_(element));
+	}
+
+	/**
+	 * FIXME empty description for jsdoc
+	 */
+	public reprioritize() {
+		const priorityFunction = this.priorityFunction_;
+		const elements = this.elements_;
+		const priorities = this.priorities_;
+		let index = 0;
+		const n = elements.length;
+		for (let i = 0; i < n; ++i) {
+			const element = elements[i];
+			const priority = priorityFunction(element);
+			if (priority === DROP) {
+				delete this.queuedElements_[this.keyFunction_(element)];
+			} else {
+				priorities[index] = priority;
+				elements[index++] = element;
+			}
+		}
+		elements.length = index;
+		priorities.length = index;
+		this.heapify_();
+	}
+
+	/**
+	 * Gets the index of the left child of the node at the given index.
+	 * @param {number} index The index of the node to get the left child for.
+	 * @return {number} The index of the left child.
+	 * @private
+	 */
+	private getLeftChildIndex_(index: number) {
+		return index * 2 + 1;
+	}
 
 
-/**
- * Make this a heap. O(N).
- * @private
- */
-PriorityQueue.prototype.heapify_ = function() {
-  let i;
-  for (i = (this.elements_.length >> 1) - 1; i >= 0; i--) {
-    this.siftUp_(i);
-  }
-};
+	/**
+	 * Gets the index of the right child of the node at the given index.
+	 * @param {number} index The index of the node to get the right child for.
+	 * @return {number} The index of the right child.
+	 * @private
+	 */
+	private getRightChildIndex_(index: number) {
+		return index * 2 + 2;
+	}
 
 
-/**
- * @return {boolean} Is empty.
- */
-PriorityQueue.prototype.isEmpty = function() {
-  return this.elements_.length === 0;
-};
+	/**
+	 * Gets the index of the parent of the node at the given index.
+	 * @param {number} index The index of the node to get the parent for.
+	 * @return {number} The index of the parent.
+	 * @private
+	 */
+	private getParentIndex_(index: number) {
+		return (index - 1) >> 1;
+	}
 
 
-/**
- * @param {string} key Key.
- * @return {boolean} Is key queued.
- */
-PriorityQueue.prototype.isKeyQueued = function(key) {
-  return key in this.queuedElements_;
-};
+	/**
+	 * Make this a heap. O(N).
+	 * @private
+	 */
+	private heapify_() {
+		let i;
+		for (i = (this.elements_.length >> 1) - 1; i >= 0; i--) {
+			this.siftUp_(i);
+		}
+	}
+
+	/**
+	 * @param {number} index The index of the node to move down.
+	 * @private
+	 */
+	private siftUp_(index: number) {
+		const elements = this.elements_;
+		const priorities = this.priorities_;
+		const count = elements.length;
+		const element = elements[index];
+		const priority = priorities[index];
+		const startIndex = index;
+
+		while (index < (count >> 1)) {
+			const lIndex = this.getLeftChildIndex_(index);
+			const rIndex = this.getRightChildIndex_(index);
+
+			const smallerChildIndex = rIndex < count &&
+				priorities[rIndex] < priorities[lIndex] ?
+				rIndex : lIndex;
+
+			elements[index] = elements[smallerChildIndex];
+			priorities[index] = priorities[smallerChildIndex];
+			index = smallerChildIndex;
+		}
+
+		elements[index] = element;
+		priorities[index] = priority;
+		this.siftDown_(startIndex, index);
+	}
 
 
-/**
- * @param {T} element Element.
- * @return {boolean} Is queued.
- */
-PriorityQueue.prototype.isQueued = function(element) {
-  return this.isKeyQueued(this.keyFunction_(element));
-};
+	/**
+	 * @param {number} startIndex The index of the root.
+	 * @param {number} index The index of the node to move up.
+	 * @private
+	 */
+	private siftDown_(startIndex: number, index: number) {
+		const elements = this.elements_;
+		const priorities = this.priorities_;
+		const element = elements[index];
+		const priority = priorities[index];
 
+		while (index > startIndex) {
+			const parentIndex = this.getParentIndex_(index);
+			if (priorities[parentIndex] > priority) {
+				elements[index] = elements[parentIndex];
+				priorities[index] = priorities[parentIndex];
+				index = parentIndex;
+			} else {
+				break;
+			}
+		}
+		elements[index] = element;
+		priorities[index] = priority;
+	}
 
-/**
- * @param {number} index The index of the node to move down.
- * @private
- */
-PriorityQueue.prototype.siftUp_ = function(index) {
-  const elements = this.elements_;
-  const priorities = this.priorities_;
-  const count = elements.length;
-  const element = elements[index];
-  const priority = priorities[index];
-  const startIndex = index;
-
-  while (index < (count >> 1)) {
-    const lIndex = this.getLeftChildIndex_(index);
-    const rIndex = this.getRightChildIndex_(index);
-
-    const smallerChildIndex = rIndex < count &&
-        priorities[rIndex] < priorities[lIndex] ?
-      rIndex : lIndex;
-
-    elements[index] = elements[smallerChildIndex];
-    priorities[index] = priorities[smallerChildIndex];
-    index = smallerChildIndex;
-  }
-
-  elements[index] = element;
-  priorities[index] = priority;
-  this.siftDown_(startIndex, index);
-};
-
-
-/**
- * @param {number} startIndex The index of the root.
- * @param {number} index The index of the node to move up.
- * @private
- */
-PriorityQueue.prototype.siftDown_ = function(startIndex, index) {
-  const elements = this.elements_;
-  const priorities = this.priorities_;
-  const element = elements[index];
-  const priority = priorities[index];
-
-  while (index > startIndex) {
-    const parentIndex = this.getParentIndex_(index);
-    if (priorities[parentIndex] > priority) {
-      elements[index] = elements[parentIndex];
-      priorities[index] = priorities[parentIndex];
-      index = parentIndex;
-    } else {
-      break;
-    }
-  }
-  elements[index] = element;
-  priorities[index] = priority;
-};
-
-
-/**
- * FIXME empty description for jsdoc
- */
-PriorityQueue.prototype.reprioritize = function() {
-  const priorityFunction = this.priorityFunction_;
-  const elements = this.elements_;
-  const priorities = this.priorities_;
-  let index = 0;
-  const n = elements.length;
-  let element, i, priority;
-  for (i = 0; i < n; ++i) {
-    element = elements[i];
-    priority = priorityFunction(element);
-    if (priority == DROP) {
-      delete this.queuedElements_[this.keyFunction_(element)];
-    } else {
-      priorities[index] = priority;
-      elements[index++] = element;
-    }
-  }
-  elements.length = index;
-  priorities.length = index;
-  this.heapify_();
-};
-export default PriorityQueue;
+}

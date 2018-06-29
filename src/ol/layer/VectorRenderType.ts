@@ -12,7 +12,9 @@
  *    even during animations, but slower performance.
  * @api
  */
-export default {
-  IMAGE: 'image',
-  VECTOR: 'vector'
-};
+enum VectorRenderType {
+	IMAGE = 'image',
+	VECTOR = 'vector'
+}
+
+export default VectorRenderType;

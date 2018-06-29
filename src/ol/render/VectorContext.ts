@@ -14,6 +14,7 @@ import Image from '../style/Image';
 import Stroke from '../style/Stroke';
 import Style from '../style/Style';
 import Text from '../style/Text';
+import { DeclutterGroup } from './canvas';
 import RenderFeature from './Feature';
 
 /**
@@ -135,12 +136,12 @@ export default abstract class VectorContext {
 	 * @param {module:ol/style/Image} imageStyle Image style.
 	 * @param {module:ol/render/canvas~DeclutterGroup=} opt_declutterGroup Declutter.
 	 */
-	public abstract setImageStyle(imageStyle: Image, opt_declutterGroup: DeclutterGroup): void;
+	public abstract setImageStyle(imageStyle: Image, opt_declutterGroup?: DeclutterGroup): void;
 
 
 	/**
 	 * @param {module:ol/style/Text} textStyle Text style.
 	 * @param {module:ol/render/canvas~DeclutterGroup=} opt_declutterGroup Declutter.
 	 */
-	public abstract setTextStyle(textStyle: Text, opt_declutterGroup: DeclutterGroup): void;
+	public abstract setTextStyle(textStyle: Text, opt_declutterGroup?: DeclutterGroup): void;
 }

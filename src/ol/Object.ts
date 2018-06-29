@@ -18,7 +18,7 @@ import Observable from './Observable';
  * @param {*} oldValue The old value for `key`.
  * @extends {module:ol/events/Event}
  */
-class ObjectEvent extends Event {
+export class ObjectEvent extends Event {
 	/**
 	 * The name of the property whose value is changing.
 	 * @type {string}

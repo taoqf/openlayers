@@ -15,8 +15,10 @@
  *    even during animations, but slower performance than the other options.
  * @api
  */
-export default {
-  IMAGE: 'image',
-  HYBRID: 'hybrid',
-  VECTOR: 'vector'
-};
+enum VectorTileRenderType {
+	IMAGE = 'image',
+	HYBRID = 'hybrid',
+	VECTOR = 'vector'
+}
+
+export default VectorTileRenderType;

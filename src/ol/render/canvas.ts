@@ -8,6 +8,7 @@ import { createCanvasContext2D } from '../dom';
 import { clear } from '../obj';
 import LRUCache from '../structs/LRUCache';
 import { create as createTransform, Transform } from '../transform';
+import { TEXT_ALIGN } from './replay';
 
 
 /**
@@ -16,7 +17,7 @@ import { create as createTransform, Transform } from '../transform';
  */
 
 export interface FillState {
-	fillStyle: ColorLike;
+	fillStyle?: ColorLike;
 }
 
 /**
@@ -44,7 +45,7 @@ export interface FillStrokeState {
 	currentFillStyle: ColorLike;
 	currentStrokeStyle: ColorLike;
 	currentLineCap: string;
-	currentLineDas: number[];
+	currentLineDash: number[];
 	currentLineDashOffset: number;
 	currentLineJoin: string;
 	currentLineWidth: number;
@@ -53,7 +54,7 @@ export interface FillStrokeState {
 	fillStyle: ColorLike;
 	strokeStyle: ColorLike;
 	lineCap: string;
-	lineDas: number[];
+	lineDash: number[] | null;
 	lineDashOffset: number;
 	lineJoin: string;
 	lineWidth: number;
@@ -90,7 +91,8 @@ export interface StrokeState {
 
 export interface TextState {
 	font: string;
-	textAlign?: string;
+	scale: number;
+	textAlign?: TEXT_ALIGN | string;
 	textBaseline: string;
 }
 
@@ -198,7 +200,7 @@ export const defaultLineWidth = 1;
  * @type {module:ol/structs/LRUCache.<HTMLCanvasElement>}
  * @api
  */
-export const labelCache = new LRUCache();
+export const labelCache = new LRUCache<HTMLCanvasElement>();
 
 
 /**
@@ -230,7 +232,7 @@ export const checkFont = (() => {
 	const referenceFonts = ['monospace', 'serif'];
 	const len = referenceFonts.length;
 	const text = 'wmytzilWMYTZIL@#/&?$%10\uF013';
-	let interval: number | NodeJS.Timer | null | undefined;
+	let interval: number | null | undefined;
 
 	function isAvailable(font: string) {
 		const context = getMeasureContext();
@@ -267,7 +269,7 @@ export const checkFont = (() => {
 			}
 		}
 		if (done) {
-			clearInterval(interval as NodeJS.Timer);
+			clearInterval(interval!);
 			interval = undefined;
 		}
 	}

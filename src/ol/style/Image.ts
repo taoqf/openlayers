@@ -1,6 +1,5 @@
 import { EventsKey } from '../events';
 import Event from '../events/Event';
-import Image from '../Image';
 import ImageState from '../ImageState';
 import { Size } from '../size';
 

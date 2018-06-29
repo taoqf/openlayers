@@ -1,11 +1,10 @@
 /**
  * @module ol/interaction/KeyboardZoom
  */
-import {inherits} from '../index';
+import { Condition, targetNotEditable } from '../events/condition';
 import EventType from '../events/EventType';
-import {targetNotEditable} from '../events/condition';
-import Interaction, {zoomByDelta} from '../interaction/Interaction';
-
+import Interaction, { zoomByDelta } from '../interaction/Interaction';
+import MapBrowserEvent from '../MapBrowserEvent';
 
 /**
  * @typedef {Object} Options
@@ -17,6 +16,11 @@ import Interaction, {zoomByDelta} from '../interaction/Interaction';
  * @property {number} [delta=1] The zoom level delta on each key press.
  */
 
+export interface Options {
+	duration: number;
+	condition: Condition;
+	delta: number;
+}
 
 /**
  * @classdesc
@@ -35,62 +39,64 @@ import Interaction, {zoomByDelta} from '../interaction/Interaction';
  * @extends {module:ol/interaction/Interaction}
  * @api
  */
-const KeyboardZoom = function(opt_options) {
+export default class KeyboardZoom extends Interaction {
+	private condition_: Condition;
+	private delta_: number;
+	private duration_: number;
+	constructor(opt_options?: Partial<Options>) {
 
-  Interaction.call(this, {
-    handleEvent: handleEvent
-  });
+		super({
+			handleEvent: (e) => {
+				return this.he(e);
+			}
+		});
 
-  const options = opt_options ? opt_options : {};
+		const options = opt_options ? opt_options : {};
 
-  /**
-   * @private
-   * @type {module:ol/events/condition~Condition}
-   */
-  this.condition_ = options.condition ? options.condition : targetNotEditable;
+		/**
+		 * @private
+		 * @type {module:ol/events/condition~Condition}
+		 */
+		this.condition_ = options.condition ? options.condition : targetNotEditable;
 
-  /**
-   * @private
-   * @type {number}
-   */
-  this.delta_ = options.delta ? options.delta : 1;
+		/**
+		 * @private
+		 * @type {number}
+		 */
+		this.delta_ = options.delta ? options.delta : 1;
 
-  /**
-   * @private
-   * @type {number}
-   */
-  this.duration_ = options.duration !== undefined ? options.duration : 100;
-
-};
-
-inherits(KeyboardZoom, Interaction);
+		/**
+		 * @private
+		 * @type {number}
+		 */
+		this.duration_ = options.duration !== undefined ? options.duration : 100;
+	}
 
 
-/**
- * Handles the {@link module:ol/MapBrowserEvent map browser event} if it was a
- * `KeyEvent`, and decides whether to zoom in or out (depending on whether the
- * key pressed was '+' or '-').
- * @param {module:ol/MapBrowserEvent} mapBrowserEvent Map browser event.
- * @return {boolean} `false` to stop event propagation.
- * @this {module:ol/interaction/KeyboardZoom}
- */
-function handleEvent(mapBrowserEvent) {
-  let stopEvent = false;
-  if (mapBrowserEvent.type == EventType.KEYDOWN ||
-      mapBrowserEvent.type == EventType.KEYPRESS) {
-    const keyEvent = mapBrowserEvent.originalEvent;
-    const charCode = keyEvent.charCode;
-    if (this.condition_(mapBrowserEvent) &&
-        (charCode == '+'.charCodeAt(0) || charCode == '-'.charCodeAt(0))) {
-      const map = mapBrowserEvent.map;
-      const delta = (charCode == '+'.charCodeAt(0)) ? this.delta_ : -this.delta_;
-      const view = map.getView();
-      zoomByDelta(view, delta, undefined, this.duration_);
-      mapBrowserEvent.preventDefault();
-      stopEvent = true;
-    }
-  }
-  return !stopEvent;
+	/**
+	 * Handles the {@link module:ol/MapBrowserEvent map browser event} if it was a
+	 * `KeyEvent`, and decides whether to zoom in or out (depending on whether the
+	 * key pressed was '+' or '-').
+	 * @param {module:ol/MapBrowserEvent} mapBrowserEvent Map browser event.
+	 * @return {boolean} `false` to stop event propagation.
+	 * @this {module:ol/interaction/KeyboardZoom}
+	 */
+	private he(mapBrowserEvent: MapBrowserEvent) {
+		let stopEvent = false;
+		if (mapBrowserEvent.type === EventType.KEYDOWN ||
+			mapBrowserEvent.type === EventType.KEYPRESS) {
+			const keyEvent = mapBrowserEvent.originalEvent as KeyboardEvent;
+			const charCode = keyEvent.charCode;
+			if (this.condition_(mapBrowserEvent) &&
+				(charCode === '+'.charCodeAt(0) || charCode === '-'.charCodeAt(0))) {
+				const map = mapBrowserEvent.map;
+				const delta = (charCode === '+'.charCodeAt(0)) ? this.delta_ : -this.delta_;
+				const view = map.getView();
+				zoomByDelta(view, delta, undefined, this.duration_);
+				mapBrowserEvent.preventDefault();
+				stopEvent = true;
+			}
+		}
+		return !stopEvent;
+	}
 }
-
-export default KeyboardZoom;

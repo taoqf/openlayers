@@ -2,7 +2,6 @@
  * @module ol/layer/Image
  */
 import { Extent } from '../extent';
-import { inherits } from '../index';
 import Layer from '../layer/Layer';
 import LayerType from '../LayerType';
 import PluggableMap from '../PluggableMap';

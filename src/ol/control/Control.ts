@@ -22,8 +22,8 @@ import PluggableMap from '../PluggableMap';
  */
 
 export interface ControlOptions {
-	element: HTMLElement;
-	target: string | HTMLElement;
+	element: Element;
+	target: string | Element;
 	render(e: MapEvent): void;
 }
 
@@ -59,14 +59,14 @@ export default class Control extends BaseObject {
 	 * @protected
 	 * @type {Element}
 	 */
-	protected element: HTMLElement;
+	protected element: Element;
 	protected listenerKeys: EventsKey[];
 	protected render: (e: MapEvent) => void;
 	/**
 	 * @private
 	 * @type {Element}
 	 */
-	private target: HTMLElement | null;
+	private target: Element | null;
 	/**
 	 * @private
 	 * @type {module:ol/PluggableMap}
@@ -111,7 +111,7 @@ export default class Control extends BaseObject {
 	 * @api
 	 */
 	public getMap() {
-		return this.map;
+		return this.map!;
 	}
 
 
@@ -137,8 +137,8 @@ export default class Control extends BaseObject {
 			target.appendChild(this.element);
 			if (this.render !== UNDEFINED) {
 				this.listenerKeys.push(listen(map,
-					MapEventType.POSTRENDER, (e) => {
-						this.render(e as MapEvent);
+					MapEventType.POSTRENDER, (e: MapEvent) => {
+						this.render(e);
 					}, this)!);
 			}
 			map.render();
@@ -154,7 +154,7 @@ export default class Control extends BaseObject {
 	 * @param {Element|string} target Target.
 	 * @api
 	 */
-	public setTarget(target: HTMLElement | string) {
+	public setTarget(target: Element | string) {
 		this.target = typeof target === 'string' ?
 			document.getElementById(target)! :
 			target;

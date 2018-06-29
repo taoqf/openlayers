@@ -1,7 +1,9 @@
 /**
  * @module ol/MapBrowserEvent
  */
-import Event from './events/Event';
+import { Coordinate } from './coordinate';
+import olEvent from './events/Event';
+import { Pixel } from './index';
 import MapEvent from './MapEvent';
 import PluggableMap, { FrameState } from './PluggableMap';
 
@@ -19,9 +21,9 @@ import PluggableMap, { FrameState } from './PluggableMap';
  * @param {?module:ol/PluggableMap~FrameState=} opt_frameState Frame state.
  */
 export default class MapBrowserEvent extends MapEvent {
-	public originalEvent: Event;
-	public pixel: number[];
-	public coordinate: [number, number] | null;
+	public originalEvent: Event | olEvent;
+	public pixel: Pixel;
+	public coordinate: Coordinate | null;
 	public dragging: boolean;
 	constructor(type: string, map: PluggableMap, browserEvent: Event, opt_dragging?: boolean, opt_frameState?: FrameState) {
 

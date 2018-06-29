@@ -5,7 +5,9 @@
 /**
  * @enum {number}
  */
-export default {
-	ANIMATING: 0,
-	INTERACTING: 1
-};
+enum ViewHint {
+	ANIMATING = 0,
+	INTERACTING = 1
+}
+
+export default ViewHint;

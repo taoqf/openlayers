@@ -7,9 +7,6 @@ import FeatureFormat from './format/Feature';
 import FormatType from './format/FormatType';
 import { UNDEFINED } from './functions';
 import Projection from './proj/Projection';
-import VectorSource from './source/Vector';
-import VectorTile from './VectorTile';
-
 
 /**
  * {@link module:ol/source/Vector} sources use a function of this type to
@@ -28,7 +25,7 @@ import VectorTile from './VectorTile';
  * @api
  */
 
-export type FeatureLoader = (source: VectorSource, extent: Extent, n: number, proj: Projection) => void;
+export type FeatureLoader = (extent: Extent, n: number, proj: Projection) => void;
 
 /**
  * {@link module:ol/source/Vector} sources use a function of this type to
@@ -55,7 +52,7 @@ export type FeatureUrlFunction = (extent: Extent, n: number, proj: Projection) =
  *     source as `this`.
  * @return {module:ol/featureloader~FeatureLoader} The feature loader.
  */
-export function loadFeaturesXhr(this: VectorSource, url: string | FeatureUrlFunction, format: FeatureFormat, success: ((this: VectorTile, features: Feature[], proj: Projection, extent: Extent) => void) | ((this: VectorSource, features: Feature[]) => void), failure: ((this: VectorTile) => void) | ((this: VectorSource) => void)) {
+export default function loadFeaturesXhr(url: string | FeatureUrlFunction, format: FeatureFormat, success: (features: Feature[], proj: Projection, extent: Extent) => void, failure = UNDEFINED) {
 	return (
 		/**
 		 * @param {module:ol/extent~Extent} extent Extent.
@@ -92,27 +89,24 @@ export function loadFeaturesXhr(this: VectorSource, url: string | FeatureUrlFunc
 						source = /** @type {ArrayBuffer} */ (_xhr.response);
 					}
 					if (source) {
-						success.call(this, format.readFeatures(source,
-							{ featureProjection: projection }),
-							format.readProjection(source), format.getLastExtent());
+						success(format.readFeatures(source, { featureProjection: projection }), format.readProjection(source), format.getLastExtent());
 					} else {
-						failure.call(this);
+						failure();
 					}
 				} else {
-					failure.call(this);
+					failure();
 				}
 			};
 			/**
 			 * @private
 			 */
 			_xhr.onerror = () => {
-				failure.call(this);
+				failure();
 			};
 			_xhr.send();
 		}
-	);
+	) as FeatureLoader;
 }
-
 
 /**
  * Create an XHR feature loader for a `url` and `format`. The feature loader
@@ -123,15 +117,15 @@ export function loadFeaturesXhr(this: VectorSource, url: string | FeatureUrlFunc
  * @return {module:ol/featureloader~FeatureLoader} The feature loader.
  * @api
  */
-export function xhr(url: string, format: FeatureFormat) {
-	return loadFeaturesXhr(url, format,
-		/**
-		 * @param {Array.<module:ol/Feature>} features The loaded features.
-		 * @param {module:ol/proj/Projection} dataProjection Data
-		 * projection.
-		 * @this {module:ol/source/Vector}
-		 */
-		(function (this: VectorSource, features: Feature[], _dataProjection) {
-			this.addFeatures(features);
-		}), /* FIXME handle error */ UNDEFINED);
-}
+// export function xhr(url: string, format: FeatureFormat) {
+// 	return loadFeaturesXhr(url, format,
+// 		/**
+// 		 * @param {Array.<module:ol/Feature>} features The loaded features.
+// 		 * @param {module:ol/proj/Projection} dataProjection Data
+// 		 * projection.
+// 		 * @this {module:ol/source/Vector}
+// 		 */
+// 		(features, _dataProjection) => {
+// 			this.addFeatures(features);
+// 		}, /* FIXME handle error */ UNDEFINED);
+// }

@@ -1,11 +1,10 @@
 /**
  * @module ol/Map
  */
-import {inherits} from './index';
-import PluggableMap from './PluggableMap';
-import {defaults as defaultControls} from './control/util';
-import {defaults as defaultInteractions} from './interaction';
-import {assign} from './obj';
+import { defaults as defaultControls } from './control/util';
+import { defaults as defaultInteractions } from './interaction';
+import { assign } from './obj';
+import PluggableMap, { MapOptions } from './PluggableMap';
 import CanvasImageLayerRenderer from './renderer/canvas/ImageLayer';
 import CanvasMapRenderer from './renderer/canvas/Map';
 import CanvasTileLayerRenderer from './renderer/canvas/TileLayer';
@@ -66,29 +65,28 @@ import CanvasVectorTileLayerRenderer from './renderer/canvas/VectorTileLayer';
  * @fires module:ol/render/Event~RenderEvent#precompose
  * @api
  */
-const Map = function(options) {
-  options = assign({}, options);
-  if (!options.controls) {
-    options.controls = defaultControls();
-  }
-  if (!options.interactions) {
-    options.interactions = defaultInteractions();
-  }
+export default class Map extends PluggableMap {
+	constructor(options: Partial<MapOptions>) {
+		options = assign({}, options);
+		if (!options.controls) {
+			options.controls = defaultControls();
+		}
+		if (!options.interactions) {
+			options.interactions = defaultInteractions();
+		}
 
-  PluggableMap.call(this, options);
-};
+		super(options);
+	}
 
-inherits(Map, PluggableMap);
 
-Map.prototype.createRenderer = function() {
-  const renderer = new CanvasMapRenderer(this);
-  renderer.registerLayerRenderers([
-    CanvasImageLayerRenderer,
-    CanvasTileLayerRenderer,
-    CanvasVectorLayerRenderer,
-    CanvasVectorTileLayerRenderer
-  ]);
-  return renderer;
-};
-
-export default Map;
+	public createRenderer() {
+		const renderer = new CanvasMapRenderer(this);
+		renderer.registerLayerRenderers([
+			CanvasImageLayerRenderer,
+			CanvasTileLayerRenderer,
+			CanvasVectorLayerRenderer,
+			CanvasVectorTileLayerRenderer
+		] as any);	// todo as any
+		return renderer;
+	}
+}

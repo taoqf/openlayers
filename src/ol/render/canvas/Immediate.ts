@@ -23,6 +23,7 @@ import Polygon from '../../geom/Polygon';
 import { transformGeom2D } from '../../geom/SimpleGeometry';
 import { CANVAS_LINE_DASH } from '../../has';
 import Fill from '../../style/Fill';
+import ImageStyle from '../../style/Image';
 import Stroke from '../../style/Stroke';
 import Style from '../../style/Style';
 import Text from '../../style/Text';
@@ -30,7 +31,6 @@ import { compose as composeTransform, create as createTransform, Transform } fro
 import { defaultFillStyle, defaultFont, defaultLineCap, defaultLineDash, defaultLineDashOffset, defaultLineJoin, defaultLineWidth, defaultMiterLimit, defaultStrokeStyle, defaultTextAlign, defaultTextBaseline, FillState, StrokeState, TextState } from '../canvas';
 import RenderFeature from '../Feature';
 import VectorContext from '../VectorContext';
-import ImageStyle from '../../style/Image';
 
 /**
  * @classdesc
@@ -339,7 +339,7 @@ export default class CanvasImmediateRenderer extends VectorContext {
 	 */
 	public setStyle(style: Style) {
 		this.setFillStrokeStyle(style.getFill()!, style.getStroke()!);
-		this.setImageStyle(style.getImage());
+		this.setImageStyle(style.getImage()!);
 		this.setTextStyle(style.getText()!);
 	}
 
@@ -654,7 +654,7 @@ export default class CanvasImmediateRenderer extends VectorContext {
 			const imageAnchor = imageStyle.getAnchor()!;
 			// FIXME pixel ratio
 			const imageImage = imageStyle.getImage(1);
-			const imageOrigin = imageStyle.getOrigin();
+			const imageOrigin = imageStyle.getOrigin()!;
 			const imageSize = imageStyle.getSize()!;
 			this.imageAnchorX = imageAnchor[0];
 			this.imageAnchorY = imageAnchor[1];
@@ -907,13 +907,13 @@ export default class CanvasImmediateRenderer extends VectorContext {
 		const context = this.context;
 		const contextFillState = this.contextFillState;
 		if (!contextFillState) {
-			context.fillStyle = fillState.fillStyle;
+			context.fillStyle = fillState.fillStyle!;
 			this.contextFillState = {
 				fillStyle: fillState.fillStyle
 			};
 		} else {
 			if (contextFillState.fillStyle !== fillState.fillStyle) {
-				contextFillState.fillStyle = context.fillStyle = fillState.fillStyle;
+				contextFillState.fillStyle = context.fillStyle = fillState.fillStyle!;
 			}
 		}
 	}
@@ -986,19 +986,19 @@ export default class CanvasImmediateRenderer extends VectorContext {
 			textState.textAlign : defaultTextAlign;
 		if (!contextTextState) {
 			context.font = textState.font;
-			context.textAlign = textAlign;
+			context.textAlign = textAlign as string;
 			context.textBaseline = textState.textBaseline;
 			this.contextTextState = {
 				font: textState.font,
 				textAlign,
 				textBaseline: textState.textBaseline
-			};
+			} as TextState;
 		} else {
 			if (contextTextState.font !== textState.font) {
 				contextTextState.font = context.font = textState.font;
 			}
 			if (contextTextState.textAlign !== textAlign) {
-				contextTextState.textAlign = context.textAlign = textAlign;
+				contextTextState.textAlign = context.textAlign = textAlign as string;
 			}
 			if (contextTextState.textBaseline !== textState.textBaseline) {
 				contextTextState.textBaseline = context.textBaseline =

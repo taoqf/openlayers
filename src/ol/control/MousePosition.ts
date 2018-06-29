@@ -3,12 +3,15 @@
  */
 
 import Control from '../control/Control';
+import { CoordinateFormat } from '../coordinate';
 import { listen } from '../events';
 import EventType from '../events/EventType';
+import { Pixel } from '../index';
 import MapEvent from '../MapEvent';
 import { getChangeEventType } from '../Object';
 import PluggableMap from '../PluggableMap';
-import { get as getProjection, getTransformFromProjections, identityTransform, ProjectionLike } from '../proj';
+import { get as getProjection, getTransformFromProjections, identityTransform, ProjectionLike, TransformFunction } from '../proj';
+import Projection from '../proj/Projection';
 
 /**
  * @type {string}
@@ -40,8 +43,11 @@ const COORDINATE_FORMAT = 'coordinateFormat';
 
 export interface Options {
 	className: string;
-	// coordinateFormat;
-	// projection;
+	coordinateFormat: CoordinateFormat;
+	projection: ProjectionLike;
+	target: Element | string;
+	undefinedHTML: string;
+	render(e: MapEvent): void;
 }
 
 /**
@@ -58,6 +64,12 @@ export interface Options {
  * @api
  */
 export default class MousePosition extends Control {
+	private undefinedHTML_: string;
+	private renderOnMouseOut_: boolean;
+	private renderedHTML_: string;
+	private mapProjection_: Projection | null;
+	private transform_: TransformFunction | null;
+	private lastMouseMovePixel_: Pixel | null;
 	constructor(opt_options?: Options) {
 		const options = opt_options ? opt_options : {} as Options;
 
@@ -66,7 +78,18 @@ export default class MousePosition extends Control {
 
 		super({
 			element,
-			render: options.render || render,
+			render: options.render || ((mapEvent: MapEvent) => {
+				const frameState = mapEvent.frameState;
+				if (!frameState) {
+					this.mapProjection_ = null;
+				} else {
+					if (this.mapProjection_ !== frameState.viewState.projection) {
+						this.mapProjection_ = frameState.viewState.projection;
+						this.transform_ = null;
+					}
+				}
+				this.updateHTML_(this.lastMouseMovePixel_!);
+			}),
 			target: options.target
 		});
 
@@ -162,7 +185,7 @@ export default class MousePosition extends Control {
 	 * @protected
 	 */
 	public handleMouseOut(_event: Event) {
-		this.updateHTML_(null);
+		this.updateHTML_(null!);
 		this.lastMouseMovePixel_ = null;
 	}
 
@@ -176,11 +199,11 @@ export default class MousePosition extends Control {
 		if (map) {
 			const viewport = map.getViewport();
 			this.listenerKeys.push(
-				listen(viewport, EventType.MOUSEMOVE, this.handleMouseMove, this)
+				listen(viewport, EventType.MOUSEMOVE, this.handleMouseMove, this)!
 			);
 			if (this.renderOnMouseOut_) {
 				this.listenerKeys.push(
-					listen(viewport, EventType.MOUSEOUT, this.handleMouseOut, this)
+					listen(viewport, EventType.MOUSEOUT, this.handleMouseOut, this)!
 				);
 			}
 		}
@@ -214,7 +237,7 @@ export default class MousePosition extends Control {
 	 * @param {?module:ol~Pixel} pixel Pixel.
 	 * @private
 	 */
-	public updateHTML_(pixel) {
+	public updateHTML_(pixel: Pixel) {
 		let html = this.undefinedHTML_;
 		if (pixel && this.mapProjection_) {
 			if (!this.transform_) {
@@ -247,23 +270,3 @@ export default class MousePosition extends Control {
 		this.transform_ = null;
 	}
 }
-
-/**
- * Update the mouseposition element.
- * @param {module:ol/MapEvent} mapEvent Map event.
- * @this {module:ol/control/MousePosition}
- * @api
- */
-export function render(mapEvent: MapEvent) {
-	const frameState = mapEvent.frameState;
-	if (!frameState) {
-		this.mapProjection_ = null;
-	} else {
-		if (this.mapProjection_ != frameState.viewState.projection) {
-			this.mapProjection_ = frameState.viewState.projection;
-			this.transform_ = null;
-		}
-	}
-	this.updateHTML_(this.lastMouseMovePixel_);
-}
-

@@ -1,13 +1,13 @@
 /**
  * @module ol/MapBrowserEventType
  */
-import EventType from './events/EventType';
+// import EventType from './events/EventType';
 
 /**
  * Constants for event names.
  * @enum {string}
  */
-export default {
+enum MapBrowserEventType {
 
 	/**
 	 * A true single click with no dragging and no double click. Note that this
@@ -15,28 +15,30 @@ export default {
 	 * @event module:ol/MapBrowserEvent~MapBrowserEvent#singleclick
 	 * @api
 	 */
-	SINGLECLICK: 'singleclick',
+	SINGLECLICK = 'singleclick',
 
 	/**
 	 * A click with no dragging. A double click will fire two of this.
 	 * @event module:ol/MapBrowserEvent~MapBrowserEvent#click
 	 * @api
 	 */
-	CLICK: EventType.CLICK,
+	// CLICK = EventType.CLICK,
+	CLICK = 'click',
 
 	/**
 	 * A true double click, with no dragging.
 	 * @event module:ol/MapBrowserEvent~MapBrowserEvent#dblclick
 	 * @api
 	 */
-	DBLCLICK: EventType.DBLCLICK,
+	DBLCLICK = 'dblclick',
+	// DBLCLICK = EventType.DBLCLICK,
 
 	/**
 	 * Triggered when a pointer is dragged.
 	 * @event module:ol/MapBrowserEvent~MapBrowserEvent#pointerdrag
 	 * @api
 	 */
-	POINTERDRAG: 'pointerdrag',
+	POINTERDRAG = 'pointerdrag',
 
 	/**
 	 * Triggered when a pointer is moved. Note that on touch devices this is
@@ -44,13 +46,15 @@ export default {
 	 * @event module:ol/MapBrowserEvent~MapBrowserEvent#pointermove
 	 * @api
 	 */
-	POINTERMOVE: 'pointermove',
+	POINTERMOVE = 'pointermove',
 
-	POINTERCANCEL: 'pointercancel',
-	POINTERDOWN: 'pointerdown',
-	POINTERENTER: 'pointerenter',
-	POINTERLEAVE: 'pointerleave',
-	POINTEROUT: 'pointerout',
-	POINTEROVER: 'pointerover',
-	POINTERUP: 'pointerup'
-};
+	POINTERCANCEL = 'pointercancel',
+	POINTERDOWN = 'pointerdown',
+	POINTERENTER = 'pointerenter',
+	POINTERLEAVE = 'pointerleave',
+	POINTEROUT = 'pointerout',
+	POINTEROVER = 'pointerover',
+	POINTERUP = 'pointerup'
+}
+
+export default MapBrowserEventType;

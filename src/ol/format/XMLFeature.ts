@@ -1,11 +1,13 @@
 /**
  * @module ol/format/XMLFeature
  */
-import {inherits} from '../index';
-import {extend} from '../array';
-import FeatureFormat from '../format/Feature';
+import { extend } from '../array';
+import Feature from '../Feature';
+import FeatureFormat, { ReadOptions, WriteOptions } from '../format/Feature';
 import FormatType from '../format/FormatType';
-import {isDocument, isNode, parse} from '../xml';
+import Geometry from '../geom/Geometry';
+import Projection from '../proj/Projection';
+import { isDocument, isNode, parse } from '../xml';
 
 /**
  * @classdesc
@@ -17,247 +19,235 @@ import {isDocument, isNode, parse} from '../xml';
  * @abstract
  * @extends {module:ol/format/Feature}
  */
-const XMLFeature = function() {
+export default abstract class XMLFeature extends FeatureFormat {
+	private xmlSerializer_: XMLSerializer;
+	constructor() {
+		super();
+		/**
+		 * @type {XMLSerializer}
+		 * @private
+		 */
+		this.xmlSerializer_ = new XMLSerializer();
+	}
 
-  /**
-   * @type {XMLSerializer}
-   * @private
-   */
-  this.xmlSerializer_ = new XMLSerializer();
-
-  FeatureFormat.call(this);
-};
-
-inherits(XMLFeature, FeatureFormat);
-
-
-/**
- * @inheritDoc
- */
-XMLFeature.prototype.getType = function() {
-  return FormatType.XML;
-};
+	/**
+	 * @inheritDoc
+	 */
+	public getType() {
+		return FormatType.XML;
+	}
 
 
-/**
- * @inheritDoc
- */
-XMLFeature.prototype.readFeature = function(source, opt_options) {
-  if (isDocument(source)) {
-    return this.readFeatureFromDocument(/** @type {Document} */ (source), opt_options);
-  } else if (isNode(source)) {
-    return this.readFeatureFromNode(/** @type {Node} */ (source), opt_options);
-  } else if (typeof source === 'string') {
-    const doc = parse(source);
-    return this.readFeatureFromDocument(doc, opt_options);
-  } else {
-    return null;
-  }
-};
+	/**
+	 * @inheritDoc
+	 */
+	public readFeature(source: Document | Node | object | string, opt_options?: ReadOptions): Feature | null {
+		if (isDocument(source)) {
+			return this.readFeatureFromDocument(/** @type {Document} */(source as Document), opt_options);
+		} else if (isNode(source)) {
+			return this.readFeatureFromNode(/** @type {Node} */(source as Node), opt_options);
+		} else if (typeof source === 'string') {
+			const doc = parse(source);
+			return this.readFeatureFromDocument(doc, opt_options);
+		} else {
+			return null;
+		}
+	}
 
 
-/**
- * @param {Document} doc Document.
- * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
- * @return {module:ol/Feature} Feature.
- */
-XMLFeature.prototype.readFeatureFromDocument = function(doc, opt_options) {
-  const features = this.readFeaturesFromDocument(doc, opt_options);
-  if (features.length > 0) {
-    return features[0];
-  } else {
-    return null;
-  }
-};
+	/**
+	 * @param {Document} doc Document.
+	 * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
+	 * @return {module:ol/Feature} Feature.
+	 */
+	public readFeatureFromDocument(doc: Document, opt_options?: ReadOptions) {
+		const features = this.readFeaturesFromDocument(doc, opt_options);
+		if (features.length > 0) {
+			return features[0];
+		} else {
+			return null;
+		}
+	}
 
 
-/**
- * @param {Node} node Node.
- * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
- * @return {module:ol/Feature} Feature.
- */
-XMLFeature.prototype.readFeatureFromNode = function(node, opt_options) {
-  return null; // not implemented
-};
+	/**
+	 * @param {Node} node Node.
+	 * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
+	 * @return {module:ol/Feature} Feature.
+	 */
+	public readFeatureFromNode(_node: Node, _opt_options?: ReadOptions): Feature | null {
+		return null; // not implemented
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public readGeometry(source: Document | Node | object | string, opt_options?: ReadOptions): Geometry | null {
+		if (isDocument(source)) {
+			return this.readGeometryFromDocument(
+			/** @type {Document} */(source as Document), opt_options);
+		} else if (isNode(source)) {
+			return this.readGeometryFromNode(/** @type {Node} */(source as Node), opt_options);
+		} else if (typeof source === 'string') {
+			const doc = parse(source);
+			return this.readGeometryFromDocument(doc, opt_options);
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public readProjection(source: Document | Node | object | string): Projection | null {
+		if (isDocument(source)) {
+			return this.readProjectionFromDocument(/** @type {Document} */(source as Document));
+		} else if (isNode(source)) {
+			return this.readProjectionFromNode(/** @type {Node} */(source as Node));
+		} else if (typeof source === 'string') {
+			const doc = parse(source);
+			return this.readProjectionFromDocument(doc);
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public writeFeature(feature: Feature, opt_options?: WriteOptions): string {
+		const node = this.writeFeatureNode(feature, opt_options);
+		return this.xmlSerializer_.serializeToString(node!);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public writeFeatures(features: Feature[], opt_options?: WriteOptions): string {
+		const node = this.writeFeaturesNode(features, opt_options);
+		return this.xmlSerializer_.serializeToString(node!);
+	}
 
 
-/**
- * @inheritDoc
- */
-XMLFeature.prototype.readFeatures = function(source, opt_options) {
-  if (isDocument(source)) {
-    return this.readFeaturesFromDocument(
-      /** @type {Document} */ (source), opt_options);
-  } else if (isNode(source)) {
-    return this.readFeaturesFromNode(/** @type {Node} */ (source), opt_options);
-  } else if (typeof source === 'string') {
-    const doc = parse(source);
-    return this.readFeaturesFromDocument(doc, opt_options);
-  } else {
-    return [];
-  }
-};
+	/**
+	 * @param {Array.<module:ol/Feature>} features Features.
+	 * @param {module:ol/format/Feature~WriteOptions=} opt_options Options.
+	 * @return {Node} Node.
+	 */
+	public writeFeaturesNode(_features: Feature[], _opt_options?: WriteOptions) {
+		return null; // not implemented
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public writeGeometry(geometry: Geometry, opt_options?: WriteOptions) {
+		const node = this.writeGeometryNode(geometry, opt_options);
+		return this.xmlSerializer_.serializeToString(node!);
+	}
 
 
-/**
- * @param {Document} doc Document.
- * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
- * @protected
- * @return {Array.<module:ol/Feature>} Features.
- */
-XMLFeature.prototype.readFeaturesFromDocument = function(doc, opt_options) {
-  /** @type {Array.<module:ol/Feature>} */
-  const features = [];
-  for (let n = doc.firstChild; n; n = n.nextSibling) {
-    if (n.nodeType == Node.ELEMENT_NODE) {
-      extend(features, this.readFeaturesFromNode(n, opt_options));
-    }
-  }
-  return features;
-};
+	/**
+	 * @param {module:ol/geom/Geometry} geometry Geometry.
+	 * @param {module:ol/format/Feature~WriteOptions=} opt_options Options.
+	 * @return {Node} Node.
+	 */
+	public writeGeometryNode(_geometry: Geometry, _opt_options?: WriteOptions) {
+		return null; // not implemented
+	}
 
 
-/**
- * @abstract
- * @param {Node} node Node.
- * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
- * @protected
- * @return {Array.<module:ol/Feature>} Features.
- */
-XMLFeature.prototype.readFeaturesFromNode = function(node, opt_options) {};
+	/**
+	 * @inheritDoc
+	 */
+	public readFeatures(source: Document | Node | object | string, opt_options?: Partial<ReadOptions>): Feature[] {
+		if (isDocument(source)) {
+			return this.readFeaturesFromDocument(
+			/** @type {Document} */(source as Document), opt_options);
+		} else if (isNode(source)) {
+			return this.readFeaturesFromNode(/** @type {Node} */(source as Node), opt_options);
+		} else if (typeof source === 'string') {
+			const doc = parse(source);
+			return this.readFeaturesFromDocument(doc, opt_options);
+		} else {
+			return [];
+		}
+	}
 
 
-/**
- * @inheritDoc
- */
-XMLFeature.prototype.readGeometry = function(source, opt_options) {
-  if (isDocument(source)) {
-    return this.readGeometryFromDocument(
-      /** @type {Document} */ (source), opt_options);
-  } else if (isNode(source)) {
-    return this.readGeometryFromNode(/** @type {Node} */ (source), opt_options);
-  } else if (typeof source === 'string') {
-    const doc = parse(source);
-    return this.readGeometryFromDocument(doc, opt_options);
-  } else {
-    return null;
-  }
-};
+	/**
+	 * @param {Document} doc Document.
+	 * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
+	 * @protected
+	 * @return {Array.<module:ol/Feature>} Features.
+	 */
+	protected readFeaturesFromDocument(doc: Document, opt_options?: Partial<ReadOptions>) {
+		/** @type {Array.<module:ol/Feature>} */
+		const features: Feature[] = [];
+		for (let n = doc.firstChild; n; n = n.nextSibling) {
+			if (n.nodeType === Node.ELEMENT_NODE) {
+				extend(features, this.readFeaturesFromNode(n, opt_options));
+			}
+		}
+		return features;
+	}
 
 
-/**
- * @param {Document} doc Document.
- * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
- * @protected
- * @return {module:ol/geom/Geometry} Geometry.
- */
-XMLFeature.prototype.readGeometryFromDocument = function(doc, opt_options) {
-  return null; // not implemented
-};
+	/**
+	 * @abstract
+	 * @param {Node} node Node.
+	 * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
+	 * @protected
+	 * @return {Array.<module:ol/Feature>} Features.
+	 */
+	protected abstract readFeaturesFromNode(node: Node, opt_options?: Partial<ReadOptions>): Feature[];
+
+	/**
+	 * @param {Document} doc Document.
+	 * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
+	 * @protected
+	 * @return {module:ol/geom/Geometry} Geometry.
+	 */
+	protected readGeometryFromDocument(_doc: Document, _opt_options?: Partial<ReadOptions>) {
+		return null; // not implemented
+	}
+
+	/**
+	 * @param {Node} node Node.
+	 * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
+	 * @protected
+	 * @return {module:ol/geom/Geometry} Geometry.
+	 */
+	protected readGeometryFromNode(_node: Node, _opt_options?: Partial<ReadOptions>) {
+		return null; // not implemented
+	}
+
+	/**
+	 * @param {Document} doc Document.
+	 * @protected
+	 * @return {module:ol/proj/Projection} Projection.
+	 */
+	protected readProjectionFromDocument(_doc: Document) {
+		return this.defaultDataProjection;
+	}
 
 
-/**
- * @param {Node} node Node.
- * @param {module:ol/format/Feature~ReadOptions=} opt_options Options.
- * @protected
- * @return {module:ol/geom/Geometry} Geometry.
- */
-XMLFeature.prototype.readGeometryFromNode = function(node, opt_options) {
-  return null; // not implemented
-};
+	/**
+	 * @param {Node} node Node.
+	 * @protected
+	 * @return {module:ol/proj/Projection} Projection.
+	 */
+	protected readProjectionFromNode(_node: Node) {
+		return this.defaultDataProjection;
+	}
 
-
-/**
- * @inheritDoc
- */
-XMLFeature.prototype.readProjection = function(source) {
-  if (isDocument(source)) {
-    return this.readProjectionFromDocument(/** @type {Document} */ (source));
-  } else if (isNode(source)) {
-    return this.readProjectionFromNode(/** @type {Node} */ (source));
-  } else if (typeof source === 'string') {
-    const doc = parse(source);
-    return this.readProjectionFromDocument(doc);
-  } else {
-    return null;
-  }
-};
-
-
-/**
- * @param {Document} doc Document.
- * @protected
- * @return {module:ol/proj/Projection} Projection.
- */
-XMLFeature.prototype.readProjectionFromDocument = function(doc) {
-  return this.defaultDataProjection;
-};
-
-
-/**
- * @param {Node} node Node.
- * @protected
- * @return {module:ol/proj/Projection} Projection.
- */
-XMLFeature.prototype.readProjectionFromNode = function(node) {
-  return this.defaultDataProjection;
-};
-
-
-/**
- * @inheritDoc
- */
-XMLFeature.prototype.writeFeature = function(feature, opt_options) {
-  const node = this.writeFeatureNode(feature, opt_options);
-  return this.xmlSerializer_.serializeToString(node);
-};
-
-
-/**
- * @param {module:ol/Feature} feature Feature.
- * @param {module:ol/format/Feature~WriteOptions=} opt_options Options.
- * @protected
- * @return {Node} Node.
- */
-XMLFeature.prototype.writeFeatureNode = function(feature, opt_options) {
-  return null; // not implemented
-};
-
-
-/**
- * @inheritDoc
- */
-XMLFeature.prototype.writeFeatures = function(features, opt_options) {
-  const node = this.writeFeaturesNode(features, opt_options);
-  return this.xmlSerializer_.serializeToString(node);
-};
-
-
-/**
- * @param {Array.<module:ol/Feature>} features Features.
- * @param {module:ol/format/Feature~WriteOptions=} opt_options Options.
- * @return {Node} Node.
- */
-XMLFeature.prototype.writeFeaturesNode = function(features, opt_options) {
-  return null; // not implemented
-};
-
-
-/**
- * @inheritDoc
- */
-XMLFeature.prototype.writeGeometry = function(geometry, opt_options) {
-  const node = this.writeGeometryNode(geometry, opt_options);
-  return this.xmlSerializer_.serializeToString(node);
-};
-
-
-/**
- * @param {module:ol/geom/Geometry} geometry Geometry.
- * @param {module:ol/format/Feature~WriteOptions=} opt_options Options.
- * @return {Node} Node.
- */
-XMLFeature.prototype.writeGeometryNode = function(geometry, opt_options) {
-  return null; // not implemented
-};
-export default XMLFeature;
+	/**
+	 * @param {module:ol/Feature} feature Feature.
+	 * @param {module:ol/format/Feature~WriteOptions=} opt_options Options.
+	 * @protected
+	 * @return {Node} Node.
+	 */
+	protected writeFeatureNode(_feature: Feature, _opt_options?: WriteOptions) {
+		return null; // not implemented
+	}
+}

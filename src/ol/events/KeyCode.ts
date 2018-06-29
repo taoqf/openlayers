@@ -6,9 +6,10 @@
  * @enum {number}
  * @const
  */
-export default {
-	DOWN: 40,
-	LEFT: 37,
-	RIGHT: 39,
-	UP: 38
-};
+enum KeyCode {
+	DOWN = 40,
+	LEFT = 37,
+	RIGHT = 39,
+	UP = 38
+}
+export default KeyCode;

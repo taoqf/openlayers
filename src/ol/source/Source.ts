@@ -1,10 +1,13 @@
 /**
  * @module ol/source/Source
  */
+import { Coordinate } from '../coordinate';
+import Feature from '../Feature';
 import BaseObject from '../Object';
 import { FrameState } from '../PluggableMap';
 import { get as getProjection, ProjectionLike } from '../proj';
 import Projection from '../proj/Projection';
+import RenderFeature from '../render/Feature';
 import SourceState from '../source/State';
 
 
@@ -128,7 +131,7 @@ export default abstract class Source extends BaseObject {
 	 * @return {T|undefined} Callback result.
 	 * @template T
 	 */
-	public forEachFeatureAtCoordinate() { }
+	public forEachFeatureAtCoordinate<T>(_coordinate: Coordinate, _resolution: number, _rotation: number, _hitTolerance: number, _skippedFeatureUids: { [id: string]: boolean; }, _callback: (feature: Feature | RenderFeature) => T): T | void { }
 
 
 	/**
@@ -154,7 +157,7 @@ export default abstract class Source extends BaseObject {
 	 * @abstract
 	 * @return {Array.<number>|undefined} Resolutions.
 	 */
-	public abstract getResolutions(): number[] | undefined | null;
+	public abstract getResolutions(): number[] | undefined | null | void;
 
 
 	/**

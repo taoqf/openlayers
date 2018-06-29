@@ -3,19 +3,23 @@
  */
 import Collection from '../Collection';
 import Control from '../control/Control';
-import { add as addCoordinate, rotate as rotateCoordinate } from '../coordinate';
+import { add as addCoordinate, Coordinate, rotate as rotateCoordinate } from '../coordinate';
 import { CLASS_COLLAPSED, CLASS_CONTROL, CLASS_UNSELECTABLE } from '../css';
 import { replaceNode } from '../dom';
 import { listen, listenOnce, unlisten } from '../events';
 import EventType from '../events/EventType';
 import { containsExtent, getBottomLeft, getBottomRight, getTopLeft, getTopRight, scaleFromCenter } from '../extent';
+import Layer from '../layer/Layer';
 import Map from '../Map';
+import MapEvent from '../MapEvent';
 import MapEventType from '../MapEventType';
 import MapProperty from '../MapProperty';
-import { getChangeEventType } from '../Object';
+import { getChangeEventType, ObjectEvent } from '../Object';
 import ObjectEventType from '../ObjectEventType';
 import Overlay from '../Overlay';
 import OverlayPositioning from '../OverlayPositioning';
+import PluggableMap from '../PluggableMap';
+import View from '../View';
 import ViewProperty from '../ViewProperty';
 
 
@@ -56,6 +60,18 @@ const MIN_RATIO = 0.1;
  * a default view with an EPSG:3857 projection will be used.
  */
 
+export interface Options {
+	className: string;
+	collapsed: boolean;
+	collapseLabel: string | Element;
+	collapsible: boolean;
+	label: string | Element;
+	layers: Layer[] | Collection<Layer>;
+	target: string | Element;
+	tipLabel: string;
+	view: View;
+	render(e: MapEvent): void;
+}
 
 /**
  * Create a new control with a map acting as an overview map for an other
@@ -66,25 +82,24 @@ const MIN_RATIO = 0.1;
  * @api
  */
 export default class OverviewMap extends Control {
-	constructor(opt_options) {
+	private collapsed_: boolean;
+	private collapsible_: boolean;
+	private collapseLabel_: Element;
+	private label_: Element;
+	private ovmapDiv_: HTMLElement;
+	private ovmap_: Map;
+	private boxOverlay_: Overlay;
+	constructor(opt_options?: Partial<Options>) {
 
 		const options = opt_options ? opt_options : {};
 
-		/**
-		 * @type {boolean}
-		 * @private
-		 */
-		this.collapsed_ = options.collapsed !== undefined ? options.collapsed : true;
+		let collapsed_ = options.collapsed !== undefined ? options.collapsed : true;
 
-		/**
-		 * @private
-		 * @type {boolean}
-		 */
-		this.collapsible_ = options.collapsible !== undefined ?
+		const collapsible_ = options.collapsible !== undefined ?
 			options.collapsible : true;
 
-		if (!this.collapsible_) {
-			this.collapsed_ = false;
+		if (!collapsible_) {
+			collapsed_ = false;
 		}
 
 		const className = options.className !== undefined ? options.className : 'ol-overviewmap';
@@ -93,67 +108,52 @@ export default class OverviewMap extends Control {
 
 		const collapseLabel = options.collapseLabel !== undefined ? options.collapseLabel : '\u00AB';
 
-		if (typeof collapseLabel === 'string') {
-			/**
-			 * @private
-			 * @type {Element}
-			 */
-			this.collapseLabel_ = document.createElement('span');
-			this.collapseLabel_.textContent = collapseLabel;
-		} else {
-			this.collapseLabel_ = collapseLabel;
-		}
+		const collapseLabel_ = (() => {
+			if (typeof collapseLabel === 'string') {
+				const span = document.createElement('span');
+				span.textContent = collapseLabel;
+				return span;
+			} else {
+				return collapseLabel;
+			}
+		})();
 
 		const label = options.label !== undefined ? options.label : '\u00BB';
 
+		const label_ = (() => {
+			if (typeof label === 'string') {
+				const span = document.createElement('span');
+				span.textContent = label;
+				return span;
+			} else {
+				return label;
+			}
+		})();
 
-		if (typeof label === 'string') {
-			/**
-			 * @private
-			 * @type {Element}
-			 */
-			this.label_ = document.createElement('span');
-			this.label_.textContent = label;
-		} else {
-			this.label_ = label;
-		}
-
-		const activeLabel = (this.collapsible_ && !this.collapsed_) ?
-			this.collapseLabel_ : this.label_;
+		const activeLabel = (collapsible_ && !collapsed_) ?
+			collapseLabel_ : label_;
 		const button = document.createElement('button');
 		button.setAttribute('type', 'button');
 		button.title = tipLabel;
 		button.appendChild(activeLabel);
 
-		listen(button, EventType.CLICK,
-			this.handleClick_, this);
-
 		/**
 		 * @type {Element}
 		 * @private
 		 */
-		this.ovmapDiv_ = document.createElement('DIV');
-		this.ovmapDiv_.className = 'ol-overviewmap-map';
+		const ovmapDiv_ = document.createElement('DIV');
+		ovmapDiv_.className = 'ol-overviewmap-map';
 
-		/**
-		 * @type {module:ol/Map}
-		 * @private
-		 */
-		this.ovmap_ = new Map({
+		const ovmap = new Map({
 			controls: new Collection(),
 			interactions: new Collection(),
 			view: options.view
 		});
-		const ovmap = this.ovmap_;
 
 		if (options.layers) {
-			options.layers.forEach(
-				/**
-				 * @param {module:ol/layer/Layer} layer Layer.
-				 */
-				(function (layer) {
-					ovmap.addLayer(layer);
-				}).bind(this));
+			options.layers.forEach((layer) => {
+				ovmap.addLayer(layer);
+			});
 		}
 
 		const box = document.createElement('DIV');
@@ -164,27 +164,41 @@ export default class OverviewMap extends Control {
 		 * @type {module:ol/Overlay}
 		 * @private
 		 */
-		this.boxOverlay_ = new Overlay({
+		const boxOverlay_ = new Overlay({
+			element: box,
 			position: [0, 0],
-			positioning: OverlayPositioning.BOTTOM_LEFT,
-			element: box
+			positioning: OverlayPositioning.BOTTOM_LEFT
 		});
-		this.ovmap_.addOverlay(this.boxOverlay_);
+		ovmap.addOverlay(boxOverlay_);
 
 		const cssClasses = className + ' ' + CLASS_UNSELECTABLE + ' ' + CLASS_CONTROL +
-			(this.collapsed_ && this.collapsible_ ? ' ' + CLASS_COLLAPSED : '') +
-			(this.collapsible_ ? '' : ' ol-uncollapsible');
+			(collapsed_ && collapsible_ ? ' ' + CLASS_COLLAPSED : '') +
+			(collapsible_ ? '' : ' ol-uncollapsible');
 		const element = document.createElement('div');
 		element.className = cssClasses;
-		element.appendChild(this.ovmapDiv_);
+		element.appendChild(ovmapDiv_);
 		element.appendChild(button);
 
 		super({
 			element,
-			render: options.render || render,
+			render: options.render || ((_mapEvent: MapEvent) => {
+				this.validateExtent_();
+				this.updateBox_();
+			}),
 			target: options.target
 		});
+		this.collapsed_ = collapsed_;
+		this.collapsible_ = collapsible_;
+		this.collapseLabel_ = collapseLabel_;
+		this.label_ = label_;
+		this.ovmapDiv_ = ovmapDiv_;
+		this.ovmap_ = ovmap;
+		this.boxOverlay_ = boxOverlay_;
 
+		listen(button, EventType.CLICK,
+			(e: Event) => {
+				return this.handleClick_(e);
+			}, this);
 		/* Interactive map */
 
 		const scope = this;
@@ -194,23 +208,23 @@ export default class OverviewMap extends Control {
 
 		/* Functions definition */
 
-		const computeDesiredMousePosition = function (mousePosition) {
+		const computeDesiredMousePosition = (mousePosition: MouseEvent) => {
 			return {
 				clientX: mousePosition.clientX - (overlayBox.offsetWidth / 2),
 				clientY: mousePosition.clientY + (overlayBox.offsetHeight / 2)
-			};
+			} as MouseEvent;
 		};
 
-		const move = function (event) {
+		const move = (event: MouseEvent) => {
 			const coordinates = ovmap.getEventCoordinate(computeDesiredMousePosition(event));
 
-			overlay.setPosition(coordinates);
+			overlay.setPosition(coordinates!);
 		};
 
-		const endMoving = function (event) {
+		const endMoving = (event: MouseEvent) => {
 			const coordinates = ovmap.getEventCoordinate(event);
 
-			scope.getMap().getView().setCenter(coordinates);
+			scope.getMap()!.getView().setCenter(coordinates!);
 
 			window.removeEventListener('mousemove', move);
 			window.removeEventListener('mouseup', endMoving);
@@ -218,7 +232,7 @@ export default class OverviewMap extends Control {
 
 		/* Binding */
 
-		overlayBox.addEventListener('mousedown', function () {
+		overlayBox.addEventListener('mousedown', () => {
 			window.addEventListener('mousemove', move);
 			window.addEventListener('mouseup', endMoving);
 		});
@@ -228,7 +242,7 @@ export default class OverviewMap extends Control {
 	 * @inheritDoc
 	 * @api
 	 */
-	public setMap(map) {
+	public setMap(map: PluggableMap) {
 		const oldMap = this.getMap();
 		if (map === oldMap) {
 			return;
@@ -246,7 +260,7 @@ export default class OverviewMap extends Control {
 			this.ovmap_.setTarget(this.ovmapDiv_);
 			this.listenerKeys.push(listen(
 				map, ObjectEventType.PROPERTYCHANGE,
-				this.handleMapPropertyChange_, this));
+				this.handleMapPropertyChange_, this)!);
 
 			// TODO: to really support map switching, this would need to be reworked
 			if (this.ovmap_.getLayers().getLength() === 0) {
@@ -268,7 +282,7 @@ export default class OverviewMap extends Control {
 	 * @param {Event} event The event to handle
 	 * @private
 	 */
-	public handleClick_(event) {
+	public handleClick_(event: Event) {
 		event.preventDefault();
 		this.handleToggle_();
 	}
@@ -287,7 +301,7 @@ export default class OverviewMap extends Control {
 	 * @param {boolean} collapsible True if the widget is collapsible.
 	 * @api
 	 */
-	public setCollapsible(collapsible) {
+	public setCollapsible(collapsible: boolean) {
 		if (this.collapsible_ === collapsible) {
 			return;
 		}
@@ -306,7 +320,7 @@ export default class OverviewMap extends Control {
 	 * @param {boolean} collapsed True if the widget is collapsed.
 	 * @api
 	 */
-	public setCollapsed(collapsed) {
+	public setCollapsed(collapsed: boolean) {
 		if (!this.collapsible_ || this.collapsed_ === collapsed) {
 			return;
 		}
@@ -338,13 +352,13 @@ export default class OverviewMap extends Control {
 	 * @param {module:ol/Object~ObjectEvent} event The propertychange event.
 	 * @private
 	 */
-	private handleMapPropertyChange_(event) {
+	private handleMapPropertyChange_(event: ObjectEvent) {
 		if (event.key === MapProperty.VIEW) {
 			const oldView = /** @type {module:ol/View} */ (event.oldValue);
 			if (oldView) {
 				this.unbindView_(oldView);
 			}
-			const newView = this.getMap().getView();
+			const newView = this.getMap()!.getView();
 			this.bindView_(newView);
 		}
 	}
@@ -355,7 +369,7 @@ export default class OverviewMap extends Control {
 	 * @param {module:ol/View} view The view.
 	 * @private
 	 */
-	private bindView_(view) {
+	private bindView_(view: View) {
 		listen(view,
 			getChangeEventType(ViewProperty.ROTATION),
 			this.handleRotationChanged_, this);
@@ -367,7 +381,7 @@ export default class OverviewMap extends Control {
 	 * @param {module:ol/View} view The view.
 	 * @private
 	 */
-	private unbindView_(view) {
+	private unbindView_(view: View) {
 		unlisten(view,
 			getChangeEventType(ViewProperty.ROTATION),
 			this.handleRotationChanged_, this);
@@ -415,9 +429,9 @@ export default class OverviewMap extends Control {
 		const ovextent = ovview.calculateExtent(ovmapSize);
 
 		const topLeftPixel =
-			ovmap.getPixelFromCoordinate(getTopLeft(extent));
+			ovmap.getPixelFromCoordinate(getTopLeft(extent))!;
 		const bottomRightPixel =
-			ovmap.getPixelFromCoordinate(getBottomRight(extent));
+			ovmap.getPixelFromCoordinate(getBottomRight(extent))!;
 
 		const boxWidth = Math.abs(topLeftPixel[0] - bottomRightPixel[0]);
 		const boxHeight = Math.abs(topLeftPixel[1] - bottomRightPixel[1]);
@@ -442,9 +456,9 @@ export default class OverviewMap extends Control {
 	 * @private
 	 */
 	private resetExtent_() {
-		if (MAX_RATIO === 0 || MIN_RATIO === 0) {
-			return;
-		}
+		// if (MAX_RATIO === 0 || MIN_RATIO === 0) {
+		// 	return;
+		// }
 
 		const map = this.getMap();
 		const ovmap = this.ovmap_;
@@ -529,26 +543,24 @@ export default class OverviewMap extends Control {
 	 * @return {module:ol/coordinate~Coordinate|undefined} Coordinate for rotation and center anchor.
 	 * @private
 	 */
-	private calculateCoordinateRotate_(
-		rotation, coordinate) {
-		let coordinateRotate;
-
+	private calculateCoordinateRotate_(rotation: number, coordinate: Coordinate) {
 		const map = this.getMap();
 		const view = map.getView();
 
 		const currentCenter = view.getCenter();
 
 		if (currentCenter) {
-			coordinateRotate = [
+			const coordinateRotate = [
 				coordinate[0] - currentCenter[0],
 				coordinate[1] - currentCenter[1]
-			];
+			] as Coordinate;
 			rotateCoordinate(coordinateRotate, rotation);
 			addCoordinate(coordinateRotate, currentCenter);
+			return coordinateRotate;
+		} else {
+			return undefined;
 		}
-		return coordinateRotate;
 	}
-
 
 	/**
 	 * @private
@@ -569,21 +581,10 @@ export default class OverviewMap extends Control {
 			ovmap.updateSize();
 			this.resetExtent_();
 			listenOnce(ovmap, MapEventType.POSTRENDER,
-				function (event) {
+				(_event: Event) => {
 					this.updateBox_();
 				},
 				this);
 		}
 	}
-}
-
-/**
- * Update the overview map element.
- * @param {module:ol/MapEvent} mapEvent Map event.
- * @this {module:ol/control/OverviewMap}
- * @api
- */
-export function render(mapEvent) {
-	this.validateExtent_();
-	this.updateBox_();
 }

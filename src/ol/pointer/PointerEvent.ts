@@ -31,7 +31,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import Event from '../events/Event';
+import olEvent from '../events/Event';
+import View from '../View';
 
 /**
  * Is the `buttons` property supported?
@@ -92,13 +93,13 @@ export interface EventDict {
  * @param {Object.<string, ?>=} opt_eventDict An optional dictionary of
  *    initial event properties.
  */
-export default class PointerEvent extends Event {
+export default class PointerEvent extends olEvent {
 	public originalEvent: Event;
 	public buttons: number | undefined;
 	public pressure: number;
 	public bubbles: boolean | undefined;
 	public cancelable: boolean | undefined;
-	public view: View;
+	public view: View | null | undefined;
 	public detail: number | null | undefined;
 	public screenX: number | undefined;
 	public screenY: number | undefined;
@@ -121,10 +122,6 @@ export default class PointerEvent extends Event {
 	constructor(type: string, originalEvent: Event, opt_eventDict?: Partial<EventDict>) {
 		super(type);
 
-		/**
-		 * @const
-		 * @type {Event}
-		 */
 		this.originalEvent = originalEvent;
 
 		const eventDict = opt_eventDict ? opt_eventDict : {};

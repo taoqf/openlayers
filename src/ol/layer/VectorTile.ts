@@ -1,13 +1,17 @@
 /**
  * @module ol/layer/VectorTile
  */
-import {inherits} from '../index';
-import LayerType from '../LayerType';
-import {assert} from '../asserts';
+import { assert } from '../asserts';
+import { Extent } from '../extent';
 import TileProperty from '../layer/TileProperty';
 import VectorLayer from '../layer/Vector';
 import VectorTileRenderType from '../layer/VectorTileRenderType';
-import {assign} from '../obj';
+import LayerType from '../LayerType';
+import { assign } from '../obj';
+import PluggableMap from '../PluggableMap';
+import { OrderFunction } from '../render';
+import VectorTile from '../source/VectorTile';
+import Style, { StyleFunction } from '../style/Style';
 
 
 /**
@@ -23,11 +27,11 @@ import {assign} from '../obj';
  *    even during animations, but slower performance than the other options.
  * @api
  */
-export const RenderType = {
-  IMAGE: 'image',
-  HYBRID: 'hybrid',
-  VECTOR: 'vector'
-};
+export const enum RenderType {
+	IMAGE = 'image',
+	HYBRID = 'hybrid',
+	VECTOR = 'vector'
+}
 
 
 /**
@@ -80,13 +84,29 @@ export const RenderType = {
  * recreated during interactions. See also `updateWhileAnimating`.
  * @property {number} [preload=0] Preload. Load low-resolution tiles up to `preload` levels. `0`
  * means no preloading.
- * @property {module:ol/render~OrderFunction} [renderOrder] Render order. Function to be used when sorting
- * features before rendering. By default features are drawn in the order that they are created.
- * @property {(module:ol/style/Style|Array.<module:ol/style/Style>|module:ol/style/Style~StyleFunction)} [style] Layer style. See
- * {@link module:ol/style} for default style which will be used if this is not defined.
  * @property {boolean} [useInterimTilesOnError=true] Use interim tiles on error.
  */
 
+export interface Options {
+	opacity: number;
+	visible: boolean;
+	extent: Extent;
+	zIndex: number;
+	minResolution: number;
+	maxResolution: number;
+	renderOrder: OrderFunction;
+	renderBuffer: number;
+	renderMode: VectorTileRenderType | string;
+	source: VectorTile;
+	map: PluggableMap;
+	declutter: boolean;
+	style: Style | Style[] | StyleFunction;
+	maxTilesLoading: number;
+	updateWhileAnimating: boolean;
+	updateWhileInteracting: boolean;
+	preload: number;
+	useInterimTilesOnError: boolean;
+}
 
 /**
  * @classdesc
@@ -100,91 +120,88 @@ export const RenderType = {
  * @param {module:ol/layer/VectorTile~Options=} opt_options Options.
  * @api
  */
-const VectorTileLayer = function(opt_options) {
-  const options = opt_options ? opt_options : {};
+export default class VectorTileLayer extends VectorLayer {
+	constructor(opt_options?: Partial<Options>) {
+		const options = opt_options ? opt_options : {};
 
-  let renderMode = options.renderMode || VectorTileRenderType.HYBRID;
-  assert(renderMode == undefined ||
-      renderMode == VectorTileRenderType.IMAGE ||
-      renderMode == VectorTileRenderType.HYBRID ||
-      renderMode == VectorTileRenderType.VECTOR,
-  28); // `renderMode` must be `'image'`, `'hybrid'` or `'vector'`
-  if (options.declutter && renderMode == VectorTileRenderType.IMAGE) {
-    renderMode = VectorTileRenderType.HYBRID;
-  }
-  options.renderMode = renderMode;
+		let renderMode = options.renderMode || VectorTileRenderType.HYBRID;
+		assert(renderMode === undefined ||
+			renderMode === VectorTileRenderType.IMAGE ||
+			renderMode === VectorTileRenderType.HYBRID ||
+			renderMode === VectorTileRenderType.VECTOR,
+			28); // `renderMode` must be `'image'`, `'hybrid'` or `'vector'`
+		if (options.declutter && renderMode === VectorTileRenderType.IMAGE) {
+			renderMode = VectorTileRenderType.HYBRID;
+		}
+		options.renderMode = renderMode;
 
-  const baseOptions = assign({}, options);
+		const baseOptions = assign({}, options);
 
-  delete baseOptions.preload;
-  delete baseOptions.useInterimTilesOnError;
-  VectorLayer.call(this,  /** @type {module:ol/layer/Vector~Options} */ (baseOptions));
+		delete baseOptions.preload;
+		delete baseOptions.useInterimTilesOnError;
+		super(/** @type {module:ol/layer/Vector~Options} */(baseOptions as any));
 
-  this.setPreload(options.preload ? options.preload : 0);
-  this.setUseInterimTilesOnError(options.useInterimTilesOnError !== undefined ?
-    options.useInterimTilesOnError : true);
+		this.setPreload(options.preload ? options.preload : 0);
+		this.setUseInterimTilesOnError(options.useInterimTilesOnError !== undefined ?
+			options.useInterimTilesOnError : true);
 
-  /**
-   * The layer type.
-   * @protected
-   * @type {module:ol/LayerType}
-   */
-  this.type = LayerType.VECTOR_TILE;
+		/**
+		 * The layer type.
+		 * @protected
+		 * @type {module:ol/LayerType}
+		 */
+		this.type = LayerType.VECTOR_TILE;
+	}
 
-};
-
-inherits(VectorTileLayer, VectorLayer);
-
-
-/**
- * Return the level as number to which we will preload tiles up to.
- * @return {number} The level to preload tiles up to.
- * @observable
- * @api
- */
-VectorTileLayer.prototype.getPreload = function() {
-  return /** @type {number} */ (this.get(TileProperty.PRELOAD));
-};
+	/**
+	 * Return the level as number to which we will preload tiles up to.
+	 * @return {number} The level to preload tiles up to.
+	 * @observable
+	 * @api
+	 */
+	public getPreload() {
+		return /** @type {number} */ (this.get(TileProperty.PRELOAD));
+	}
 
 
-/**
- * Whether we use interim tiles on error.
- * @return {boolean} Use interim tiles on error.
- * @observable
- * @api
- */
-VectorTileLayer.prototype.getUseInterimTilesOnError = function() {
-  return /** @type {boolean} */ (this.get(TileProperty.USE_INTERIM_TILES_ON_ERROR));
-};
+	/**
+	 * Whether we use interim tiles on error.
+	 * @return {boolean} Use interim tiles on error.
+	 * @observable
+	 * @api
+	 */
+	public getUseInterimTilesOnError() {
+		return /** @type {boolean} */ (this.get(TileProperty.USE_INTERIM_TILES_ON_ERROR));
+	}
+
+	/**
+	 * Set the level as number to which we will preload tiles up to.
+	 * @param {number} preload The level to preload tiles up to.
+	 * @observable
+	 * @api
+	 */
+	public setPreload(preload: number) {
+		this.set(TileProperty.PRELOAD, preload);
+	}
 
 
-/**
- * Set the level as number to which we will preload tiles up to.
- * @param {number} preload The level to preload tiles up to.
- * @observable
- * @api
- */
-VectorTileLayer.prototype.setPreload = function(preload) {
-  this.set(TileProperty.PRELOAD, preload);
-};
+	/**
+	 * Set whether we use interim tiles on error.
+	 * @param {boolean} useInterimTilesOnError Use interim tiles on error.
+	 * @observable
+	 * @api
+	 */
+	public setUseInterimTilesOnError(useInterimTilesOnError: boolean) {
+		this.set(TileProperty.USE_INTERIM_TILES_ON_ERROR, useInterimTilesOnError);
+	}
 
-
-/**
- * Set whether we use interim tiles on error.
- * @param {boolean} useInterimTilesOnError Use interim tiles on error.
- * @observable
- * @api
- */
-VectorTileLayer.prototype.setUseInterimTilesOnError = function(useInterimTilesOnError) {
-  this.set(TileProperty.USE_INTERIM_TILES_ON_ERROR, useInterimTilesOnError);
-};
-
-
-/**
- * Return the associated {@link module:ol/source/VectorTile vectortilesource} of the layer.
- * @function
- * @return {module:ol/source/VectorTile} Source.
- * @api
- */
-VectorTileLayer.prototype.getSource;
-export default VectorTileLayer;
+	/**
+	 * Return the associated {@link module:ol/source/VectorTile vectortilesource} of the layer.
+	 * @function
+	 * @return {module:ol/source/VectorTile} Source.
+	 * @api
+	 */
+	public getSource() {
+		return super.getSource(); // todo: should return as VectorTile;
+	}
+}

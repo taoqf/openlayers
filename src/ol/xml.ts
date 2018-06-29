@@ -12,16 +12,21 @@ import { extend } from './array';
  * @property {Node} node
  */
 
+export interface NodeStackItem {
+	node: Node;
+}
 
 /**
  * @typedef {function(Node, Array.<*>)} Parser
  */
 
+export type Parser = (n: Node, d: any[]) => void;
 
 /**
  * @typedef {function(Node, *, Array.<*>)} Serializer
  */
 
+export type Serializer = (n: Node, a: any, b: any[]) => void;
 
 /**
  * This document should be used when creating nodes for XML serializations. This
@@ -137,13 +142,13 @@ export function parse(xml: string) {
  * @return {module:ol/xml~Parser} Parser.
  * @template T
  */
-export function makeArrayExtender(valueReader: (opt_this: any, node: Node, objectStack: Node[][]) => Node | Node[], opt_this: any) {
+export function makeArrayExtender(valueReader: (node: Node, objectStack: Node[][]) => any[] | undefined) {
 	/**
 	 * @param {Node} node Node.
 	 * @param {Array.<*>} objectStack Object stack.
 	 */
 	return (node: Node, objectStack: Node[][]) => {
-		const value = valueReader(opt_this, node, objectStack);
+		const value = valueReader(node, objectStack);
 		if (value !== undefined) {
 			const array = /** @type {Array.<*>} */ (objectStack[objectStack.length - 1]);
 			extend(array, value);
@@ -160,13 +165,13 @@ export function makeArrayExtender(valueReader: (opt_this: any, node: Node, objec
  * @return {module:ol/xml~Parser} Parser.
  * @template T
  */
-export function makeArrayPusher(valueReader: (opt_this: any, node: Node, objectStack: Node[][]) => Node, opt_this: any) {
+export function makeArrayPusher(valueReader: (node: Node, objectStack: Node[][]) => Node) {
 	/**
 	 * @param {Node} node Node.
 	 * @param {Array.<*>} objectStack Object stack.
 	 */
 	return (node: Node, objectStack: Node[][]) => {
-		const value = valueReader(opt_this, node, objectStack);
+		const value = valueReader(node, objectStack);
 		if (value !== undefined) {
 			const array = /** @type {Array.<*>} */ (objectStack[objectStack.length - 1]);
 			array.push(value);
@@ -205,7 +210,7 @@ export function makeReplacer(valueReader: (node: Node, objectStack: any[]) => an
  * @return {module:ol/xml~Parser} Parser.
  * @template T
  */
-export function makeObjectPropertyPusher(valueReader: (node: Node, objectStack: any[]) => any, opt_property: any) {
+export function makeObjectPropertyPusher(valueReader: (node: Node, objectStack: any[]) => any, opt_property?: string) {
 	/**
 	 * @param {Node} node Node.
 	 * @param {Array.<*>} objectStack Object stack.
@@ -214,7 +219,7 @@ export function makeObjectPropertyPusher(valueReader: (node: Node, objectStack: 
 		const value = valueReader(node, objectStack);
 		if (value !== undefined) {
 			const object = /** @type {!Object} */ (objectStack[objectStack.length - 1]);
-			const property = opt_property !== undefined ? opt_property : node.localName;
+			const property = opt_property !== undefined ? opt_property : node.localName!;
 			let array;
 			if (property in object) {
 				array = object[property];
@@ -235,7 +240,7 @@ export function makeObjectPropertyPusher(valueReader: (node: Node, objectStack: 
  * @return {module:ol/xml~Parser} Parser.
  * @template T
  */
-export function makeObjectPropertySetter(valueReader: (node: Node, objectStack: any[]) => any, opt_property: any) {
+export function makeObjectPropertySetter(valueReader: (node: Node, objectStack: any[]) => any, opt_property?: string) {
 	/**
 	 * @param {Node} node Node.
 	 * @param {Array.<*>} objectStack Object stack.
@@ -244,7 +249,7 @@ export function makeObjectPropertySetter(valueReader: (node: Node, objectStack: 
 		const value = valueReader(node, objectStack);
 		if (value !== undefined) {
 			const object = /** @type {!Object} */ (objectStack[objectStack.length - 1]);
-			const property = opt_property !== undefined ? opt_property : node.localName;
+			const property = opt_property !== undefined ? opt_property : node.localName!;
 			object[property] = value;
 		}
 	};
@@ -261,8 +266,8 @@ export function makeObjectPropertySetter(valueReader: (node: Node, objectStack: 
  * @return {module:ol/xml~Serializer} Serializer.
  * @template T, V
  */
-export function makeChildAppender(nodeWriter: any) {
-	return (node: Node, value: any[], objectStack: any[]) => {
+export function makeChildAppender<V>(nodeWriter: (n: Node, v: V, d: any[]) => void) {
+	return (node: Node, value: V, objectStack: any[]) => {
 		nodeWriter(node, value, objectStack);
 		const parent = /** @type {module:ol/xml~NodeStackItem} */ (objectStack[objectStack.length - 1]);
 		const parentNode = parent.node;
@@ -284,17 +289,17 @@ export function makeChildAppender(nodeWriter: any) {
  * @return {module:ol/xml~Serializer} Serializer.
  * @template T, V
  */
-export function makeArraySerializer(nodeWriter: any) {
+export function makeArraySerializer<V>(nodeWriter: (n: Node, v: V, d: any[]) => void) {
 	let nodeFactory: (_value: any, objectStack: any, opt_node_name: any) => Element;
 	let serializersNS: any;
 	return (node: Node, value: any[], objectStack: any[]) => {
 		if (serializersNS === undefined) {
 			serializersNS = {};
 			const serializers = {
-				[node.localName as string]: nodeWriter
+				[node.localName!]: nodeWriter
 			};
-			serializersNS[node.namespaceURI as string] = serializers;
-			nodeFactory = makeSimpleNodeFactory(node.localName as string);
+			serializersNS[node.namespaceURI!] = serializers;
+			nodeFactory = makeSimpleNodeFactory(node.localName!);
 		}
 		serialize(serializersNS, nodeFactory, value, objectStack);
 	};

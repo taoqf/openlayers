@@ -4,7 +4,6 @@
 import EventTarget from './events/EventTarget';
 import EventType from './events/EventType';
 import { Extent } from './extent';
-import Image from './Image';
 import ImageState from './ImageState';
 
 /**

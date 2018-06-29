@@ -296,7 +296,7 @@ export default abstract class TileSource extends Source {
 	 * @param {number} y Tile coordinate y.
 	 * @param {module:ol/proj/Projection} projection Projection.
 	 */
-	public useTile(_z: number, _x: number, _y: number) { }
+	public useTile(_z: number, _x: number, _y: number, _projection: Projection) { }
 
 	/**
 	 * Return the key to be used for all tiles in the source.

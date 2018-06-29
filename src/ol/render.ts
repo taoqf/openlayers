@@ -1,6 +1,7 @@
 /**
  * @module ol/render
  */
+import { Extent } from './extent';
 import Feature from './Feature';
 import SimpleGeometry from './geom/SimpleGeometry';
 import { DEVICE_PIXEL_RATIO } from './has';
@@ -91,7 +92,7 @@ export function toContext(context: CanvasRenderingContext2D, opt_options?: ToCon
 		canvas.style.width = size[0] + 'px';
 		canvas.style.height = size[1] + 'px';
 	}
-	const extent = [0, 0, canvas.width, canvas.height];
+	const extent = [0, 0, canvas.width, canvas.height] as Extent;
 	const transform = scaleTransform(createTransform(), pixelRatio, pixelRatio);
 	return new CanvasImmediateRenderer(context, pixelRatio, extent, transform, 0);
 }

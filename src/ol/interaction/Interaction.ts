@@ -1,11 +1,14 @@
 /**
  * @module ol/interaction/Interaction
  */
-import {inherits} from '../index';
-import BaseObject from '../Object';
-import {easeOut, linear} from '../easing';
+import { Coordinate } from '../coordinate';
+import { easeOut, linear } from '../easing';
 import InteractionProperty from '../interaction/Property';
-import {clamp} from '../math';
+import MapBrowserEvent from '../MapBrowserEvent';
+import { clamp } from '../math';
+import BaseObject from '../Object';
+import PluggableMap from '../PluggableMap';
+import View, { AnimationOptions } from '../View';
 
 
 /**
@@ -18,6 +21,9 @@ import {clamp} from '../math';
  * prevented (this includes functions with no explicit return).
  */
 
+export interface InteractionOptions {
+	handleEvent(e: MapBrowserEvent): boolean;
+}
 
 /**
  * @classdesc
@@ -36,91 +42,89 @@ import {clamp} from '../math';
  * @extends {module:ol/Object}
  * @api
  */
-const Interaction = function(options) {
+export default class Interaction extends BaseObject {
+	public handleEvent: ((e: MapBrowserEvent) => boolean) | undefined;
+	private map_: PluggableMap | null;
+	constructor(options: Partial<InteractionOptions>) {
+		super();
 
-  BaseObject.call(this);
+		/**
+		 * @private
+		 * @type {module:ol/PluggableMap}
+		 */
+		this.map_ = null;
 
-  /**
-   * @private
-   * @type {module:ol/PluggableMap}
-   */
-  this.map_ = null;
+		this.setActive(true);
 
-  this.setActive(true);
+		/**
+		 * @type {function(module:ol/MapBrowserEvent):boolean}
+		 */
+		this.handleEvent = options.handleEvent;
+	}
 
-  /**
-   * @type {function(module:ol/MapBrowserEvent):boolean}
-   */
-  this.handleEvent = options.handleEvent;
-
-};
-
-inherits(Interaction, BaseObject);
-
-
-/**
- * Return whether the interaction is currently active.
- * @return {boolean} `true` if the interaction is active, `false` otherwise.
- * @observable
- * @api
- */
-Interaction.prototype.getActive = function() {
-  return /** @type {boolean} */ (this.get(InteractionProperty.ACTIVE));
-};
+	/**
+	 * Return whether the interaction is currently active.
+	 * @return {boolean} `true` if the interaction is active, `false` otherwise.
+	 * @observable
+	 * @api
+	 */
+	public getActive() {
+		return /** @type {boolean} */ (this.get(InteractionProperty.ACTIVE));
+	}
 
 
-/**
- * Get the map associated with this interaction.
- * @return {module:ol/PluggableMap} Map.
- * @api
- */
-Interaction.prototype.getMap = function() {
-  return this.map_;
-};
+	/**
+	 * Get the map associated with this interaction.
+	 * @return {module:ol/PluggableMap} Map.
+	 * @api
+	 */
+	public getMap() {
+		return this.map_;
+	}
 
 
-/**
- * Activate or deactivate the interaction.
- * @param {boolean} active Active.
- * @observable
- * @api
- */
-Interaction.prototype.setActive = function(active) {
-  this.set(InteractionProperty.ACTIVE, active);
-};
+	/**
+	 * Activate or deactivate the interaction.
+	 * @param {boolean} active Active.
+	 * @observable
+	 * @api
+	 */
+	public setActive(active: boolean) {
+		this.set(InteractionProperty.ACTIVE, active);
+	}
 
 
-/**
- * Remove the interaction from its current map and attach it to the new map.
- * Subclasses may set up event handlers to get notified about changes to
- * the map here.
- * @param {module:ol/PluggableMap} map Map.
- */
-Interaction.prototype.setMap = function(map) {
-  this.map_ = map;
-};
-
+	/**
+	 * Remove the interaction from its current map and attach it to the new map.
+	 * Subclasses may set up event handlers to get notified about changes to
+	 * the map here.
+	 * @param {module:ol/PluggableMap} map Map.
+	 */
+	public setMap(map: PluggableMap) {
+		this.map_ = map;
+	}
+}
 
 /**
  * @param {module:ol/View} view View.
  * @param {module:ol/coordinate~Coordinate} delta Delta.
  * @param {number=} opt_duration Duration.
  */
-export function pan(view, delta, opt_duration) {
-  const currentCenter = view.getCenter();
-  if (currentCenter) {
-    const center = view.constrainCenter(
-      [currentCenter[0] + delta[0], currentCenter[1] + delta[1]]);
-    if (opt_duration) {
-      view.animate({
-        duration: opt_duration,
-        easing: linear,
-        center: center
-      });
-    } else {
-      view.setCenter(center);
-    }
-  }
+export function pan(view: View, delta: Coordinate, opt_duration?: number) {
+	const currentCenter = view.getCenter();
+	if (currentCenter) {
+		const center = view.constrainCenter(
+			[currentCenter[0] + delta[0], currentCenter[1] + delta[1]]);
+		if (opt_duration) {
+			view.animate({
+				center,
+				duration: opt_duration,
+				easing: linear
+			} as AnimationOptions);
+		} else {
+			view.setCenter(center);
+		}
+	}
 }
 
 
@@ -130,9 +134,9 @@ export function pan(view, delta, opt_duration) {
  * @param {module:ol/coordinate~Coordinate=} opt_anchor Anchor coordinate.
  * @param {number=} opt_duration Duration.
  */
-export function rotate(view, rotation, opt_anchor, opt_duration) {
-  rotation = view.constrainRotation(rotation, 0);
-  rotateWithoutConstraints(view, rotation, opt_anchor, opt_duration);
+export function rotate(view: View, rotation: number | undefined, opt_anchor?: Coordinate, opt_duration?: number) {
+	rotation = view.constrainRotation(rotation, 0);
+	rotateWithoutConstraints(view, rotation, opt_anchor, opt_duration);
 }
 
 
@@ -142,21 +146,21 @@ export function rotate(view, rotation, opt_anchor, opt_duration) {
  * @param {module:ol/coordinate~Coordinate=} opt_anchor Anchor coordinate.
  * @param {number=} opt_duration Duration.
  */
-export function rotateWithoutConstraints(view, rotation, opt_anchor, opt_duration) {
-  if (rotation !== undefined) {
-    const currentRotation = view.getRotation();
-    const currentCenter = view.getCenter();
-    if (currentRotation !== undefined && currentCenter && opt_duration > 0) {
-      view.animate({
-        rotation: rotation,
-        anchor: opt_anchor,
-        duration: opt_duration,
-        easing: easeOut
-      });
-    } else {
-      view.rotate(rotation, opt_anchor);
-    }
-  }
+export function rotateWithoutConstraints(view: View, rotation: number | undefined, opt_anchor?: Coordinate, opt_duration?: number) {
+	if (rotation !== undefined) {
+		const currentRotation = view.getRotation();
+		const currentCenter = view.getCenter();
+		if (currentRotation !== undefined && currentCenter && opt_duration! > 0) {
+			view.animate({
+				anchor: opt_anchor,
+				duration: opt_duration,
+				easing: easeOut,
+				rotation
+			} as AnimationOptions);
+		} else {
+			view.rotate(rotation, opt_anchor);
+		}
+	}
 }
 
 
@@ -174,9 +178,9 @@ export function rotateWithoutConstraints(view, rotation, opt_anchor, opt_duratio
  *     will select the nearest resolution. If not defined 0 is
  *     assumed.
  */
-export function zoom(view, resolution, opt_anchor, opt_duration, opt_direction) {
-  resolution = view.constrainResolution(resolution, 0, opt_direction);
-  zoomWithoutConstraints(view, resolution, opt_anchor, opt_duration);
+export function zoom(view: View, resolution: number | undefined, opt_anchor?: Coordinate, opt_duration?: number, opt_direction?: number) {
+	resolution = view.constrainResolution(resolution, 0, opt_direction)!;
+	zoomWithoutConstraints(view, resolution, opt_anchor, opt_duration);
 }
 
 
@@ -186,35 +190,35 @@ export function zoom(view, resolution, opt_anchor, opt_duration, opt_direction) 
  * @param {module:ol/coordinate~Coordinate=} opt_anchor Anchor coordinate.
  * @param {number=} opt_duration Duration.
  */
-export function zoomByDelta(view, delta, opt_anchor, opt_duration) {
-  const currentResolution = view.getResolution();
-  let resolution = view.constrainResolution(currentResolution, delta, 0);
+export function zoomByDelta(view: View, delta: number, opt_anchor?: Coordinate, opt_duration?: number) {
+	const currentResolution = view.getResolution();
+	let resolution = view.constrainResolution(currentResolution, delta, 0)!;
 
-  if (resolution !== undefined) {
-    const resolutions = view.getResolutions();
-    resolution = clamp(
-      resolution,
-      view.getMinResolution() || resolutions[resolutions.length - 1],
-      view.getMaxResolution() || resolutions[0]);
-  }
+	if (resolution !== undefined) {
+		const resolutions = view.getResolutions();
+		resolution = clamp(
+			resolution,
+			view.getMinResolution() || resolutions[resolutions.length - 1],
+			view.getMaxResolution() || resolutions[0]);
+	}
 
-  // If we have a constraint on center, we need to change the anchor so that the
-  // new center is within the extent. We first calculate the new center, apply
-  // the constraint to it, and then calculate back the anchor
-  if (opt_anchor && resolution !== undefined && resolution !== currentResolution) {
-    const currentCenter = view.getCenter();
-    let center = view.calculateCenterZoom(resolution, opt_anchor);
-    center = view.constrainCenter(center);
+	// If we have a constraint on center, we need to change the anchor so that the
+	// new center is within the extent. We first calculate the new center, apply
+	// the constraint to it, and then calculate back the anchor
+	if (opt_anchor && resolution !== undefined && resolution !== currentResolution) {
+		const currentCenter = view.getCenter();
+		let center = view.calculateCenterZoom(resolution, opt_anchor)!;
+		center = view.constrainCenter(center)!;
 
-    opt_anchor = [
-      (resolution * currentCenter[0] - currentResolution * center[0]) /
-          (resolution - currentResolution),
-      (resolution * currentCenter[1] - currentResolution * center[1]) /
-          (resolution - currentResolution)
-    ];
-  }
+		opt_anchor = [
+			(resolution * currentCenter[0] - currentResolution * center[0]) /
+			(resolution - currentResolution),
+			(resolution * currentCenter[1] - currentResolution * center[1]) /
+			(resolution - currentResolution)
+		];
+	}
 
-  zoomWithoutConstraints(view, resolution, opt_anchor, opt_duration);
+	zoomWithoutConstraints(view, resolution, opt_anchor, opt_duration);
 }
 
 
@@ -224,26 +228,24 @@ export function zoomByDelta(view, delta, opt_anchor, opt_duration) {
  * @param {module:ol/coordinate~Coordinate=} opt_anchor Anchor coordinate.
  * @param {number=} opt_duration Duration.
  */
-export function zoomWithoutConstraints(view, resolution, opt_anchor, opt_duration) {
-  if (resolution) {
-    const currentResolution = view.getResolution();
-    const currentCenter = view.getCenter();
-    if (currentResolution !== undefined && currentCenter &&
-        resolution !== currentResolution && opt_duration) {
-      view.animate({
-        resolution: resolution,
-        anchor: opt_anchor,
-        duration: opt_duration,
-        easing: easeOut
-      });
-    } else {
-      if (opt_anchor) {
-        const center = view.calculateCenterZoom(resolution, opt_anchor);
-        view.setCenter(center);
-      }
-      view.setResolution(resolution);
-    }
-  }
+export function zoomWithoutConstraints(view: View, resolution: number, opt_anchor?: Coordinate, opt_duration?: number) {
+	if (resolution) {
+		const currentResolution = view.getResolution();
+		const currentCenter = view.getCenter();
+		if (currentResolution !== undefined && currentCenter &&
+			resolution !== currentResolution && opt_duration) {
+			view.animate({
+				anchor: opt_anchor,
+				duration: opt_duration,
+				easing: easeOut,
+				resolution
+			} as AnimationOptions);
+		} else {
+			if (opt_anchor) {
+				const center = view.calculateCenterZoom(resolution, opt_anchor);
+				view.setCenter(center);
+			}
+			view.setResolution(resolution);
+		}
+	}
 }
-
-export default Interaction;

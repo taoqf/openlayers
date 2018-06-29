@@ -1,3 +1,5 @@
+import { Transform } from '../transform';
+
 /**
  * @module ol/vec/mat4
  */
@@ -16,7 +18,7 @@ export function create() {
  * @param {module:ol/transform~Transform} transform Transformation matrix.
  * @return {Array.<number>} 2D transformation matrix as flattened 4x4 matrix.
  */
-export function fromTransform(mat4: number[], transform) {
+export function fromTransform(mat4: number[], transform: Transform) {
 	mat4[0] = transform[0];
 	mat4[1] = transform[1];
 	mat4[4] = transform[2];

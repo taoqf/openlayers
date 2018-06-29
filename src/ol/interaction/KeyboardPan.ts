@@ -1,13 +1,12 @@
 /**
  * @module ol/interaction/KeyboardPan
  */
-import {inherits} from '../index';
-import {rotate as rotateCoordinate} from '../coordinate';
+import { Coordinate, rotate as rotateCoordinate } from '../coordinate';
+import { Condition, noModifierKeys, targetNotEditable } from '../events/condition';
 import EventType from '../events/EventType';
 import KeyCode from '../events/KeyCode';
-import {noModifierKeys, targetNotEditable} from '../events/condition';
-import Interaction, {pan} from '../interaction/Interaction';
-
+import Interaction, { pan } from '../interaction/Interaction';
+import MapBrowserEvent from '../MapBrowserEvent';
 
 /**
  * @typedef {Object} Options
@@ -21,6 +20,11 @@ import Interaction, {pan} from '../interaction/Interaction';
  * press.
  */
 
+export interface Options {
+	condition: Condition;
+	duration: number;
+	pixelDelta: number;
+}
 
 /**
  * @classdesc
@@ -39,87 +43,83 @@ import Interaction, {pan} from '../interaction/Interaction';
  * @param {module:ol/interaction/KeyboardPan~Options=} opt_options Options.
  * @api
  */
-const KeyboardPan = function(opt_options) {
+export default class KeyboardPan extends Interaction {
+	private condition_: Condition | ((mapBrowserEvent: MapBrowserEvent) => boolean);
+	private duration_: number;
+	private pixelDelta_: number;
+	constructor(opt_options?: Partial<Options>) {
 
-  Interaction.call(this, {
-    handleEvent: handleEvent
-  });
+		super({
+			handleEvent: (e) => {
+				return this.he(e);
+			}
+		});
 
-  const options = opt_options || {};
+		const options = opt_options || {};
 
-  /**
-   * @private
-   * @param {module:ol/MapBrowserEvent} mapBrowserEvent Browser event.
-   * @return {boolean} Combined condition result.
-   */
-  this.defaultCondition_ = function(mapBrowserEvent) {
-    return noModifierKeys(mapBrowserEvent) &&
-      targetNotEditable(mapBrowserEvent);
-  };
+		/**
+		 * @private
+		 * @type {module:ol/events/condition~Condition}
+		 */
+		this.condition_ = options.condition !== undefined ?
+			options.condition : (mapBrowserEvent: MapBrowserEvent) => {
+				return noModifierKeys(mapBrowserEvent) &&
+					targetNotEditable(mapBrowserEvent);
+			};
 
-  /**
-   * @private
-   * @type {module:ol/events/condition~Condition}
-   */
-  this.condition_ = options.condition !== undefined ?
-    options.condition : this.defaultCondition_;
+		/**
+		 * @private
+		 * @type {number}
+		 */
+		this.duration_ = options.duration !== undefined ? options.duration : 100;
 
-  /**
-   * @private
-   * @type {number}
-   */
-  this.duration_ = options.duration !== undefined ? options.duration : 100;
+		/**
+		 * @private
+		 * @type {number}
+		 */
+		this.pixelDelta_ = options.pixelDelta !== undefined ?
+			options.pixelDelta : 128;
+	}
 
-  /**
-   * @private
-   * @type {number}
-   */
-  this.pixelDelta_ = options.pixelDelta !== undefined ?
-    options.pixelDelta : 128;
-
-};
-
-inherits(KeyboardPan, Interaction);
-
-/**
- * Handles the {@link module:ol/MapBrowserEvent map browser event} if it was a
- * `KeyEvent`, and decides the direction to pan to (if an arrow key was
- * pressed).
- * @param {module:ol/MapBrowserEvent} mapBrowserEvent Map browser event.
- * @return {boolean} `false` to stop event propagation.
- * @this {module:ol/interaction/KeyboardPan}
- */
-function handleEvent(mapBrowserEvent) {
-  let stopEvent = false;
-  if (mapBrowserEvent.type == EventType.KEYDOWN) {
-    const keyEvent = mapBrowserEvent.originalEvent;
-    const keyCode = keyEvent.keyCode;
-    if (this.condition_(mapBrowserEvent) &&
-        (keyCode == KeyCode.DOWN ||
-        keyCode == KeyCode.LEFT ||
-        keyCode == KeyCode.RIGHT ||
-        keyCode == KeyCode.UP)) {
-      const map = mapBrowserEvent.map;
-      const view = map.getView();
-      const mapUnitsDelta = view.getResolution() * this.pixelDelta_;
-      let deltaX = 0, deltaY = 0;
-      if (keyCode == KeyCode.DOWN) {
-        deltaY = -mapUnitsDelta;
-      } else if (keyCode == KeyCode.LEFT) {
-        deltaX = -mapUnitsDelta;
-      } else if (keyCode == KeyCode.RIGHT) {
-        deltaX = mapUnitsDelta;
-      } else {
-        deltaY = mapUnitsDelta;
-      }
-      const delta = [deltaX, deltaY];
-      rotateCoordinate(delta, view.getRotation());
-      pan(view, delta, this.duration_);
-      mapBrowserEvent.preventDefault();
-      stopEvent = true;
-    }
-  }
-  return !stopEvent;
+	/**
+	 * Handles the {@link module:ol/MapBrowserEvent map browser event} if it was a
+	 * `KeyEvent`, and decides the direction to pan to (if an arrow key was
+	 * pressed).
+	 * @param {module:ol/MapBrowserEvent} mapBrowserEvent Map browser event.
+	 * @return {boolean} `false` to stop event propagation.
+	 * @this {module:ol/interaction/KeyboardPan}
+	 */
+	private he(mapBrowserEvent: MapBrowserEvent) {
+		let stopEvent = false;
+		if (mapBrowserEvent.type === EventType.KEYDOWN) {
+			const keyEvent = mapBrowserEvent.originalEvent as KeyboardEvent;
+			const keyCode = keyEvent.keyCode;
+			if (this.condition_(mapBrowserEvent) &&
+				(keyCode === KeyCode.DOWN ||
+					keyCode === KeyCode.LEFT ||
+					keyCode === KeyCode.RIGHT ||
+					keyCode === KeyCode.UP)) {
+				const map = mapBrowserEvent.map;
+				const view = map.getView();
+				const mapUnitsDelta = view.getResolution() * this.pixelDelta_;
+				let deltaX = 0;
+				let deltaY = 0;
+				if (keyCode === KeyCode.DOWN) {
+					deltaY = -mapUnitsDelta;
+				} else if (keyCode === KeyCode.LEFT) {
+					deltaX = -mapUnitsDelta;
+				} else if (keyCode === KeyCode.RIGHT) {
+					deltaX = mapUnitsDelta;
+				} else {
+					deltaY = mapUnitsDelta;
+				}
+				const delta = [deltaX, deltaY] as Coordinate;
+				rotateCoordinate(delta, view.getRotation());
+				pan(view, delta, this.duration_);
+				mapBrowserEvent.preventDefault();
+				stopEvent = true;
+			}
+		}
+		return !stopEvent;
+	}
 }
-
-export default KeyboardPan;

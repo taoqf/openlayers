@@ -1,14 +1,21 @@
 /**
  * @module ol/source/VectorTile
  */
-import {inherits} from '../index';
-import TileState from '../TileState';
-import VectorImageTile, {defaultLoadFunction} from '../VectorImageTile';
-import Tile from '../VectorTile';
-import {toSize} from '../size';
+import { Extent } from '../extent';
+import FeatureFormat from '../format/Feature';
+import { ProjectionLike } from '../proj';
+import Projection from '../proj/Projection';
+import { Size, toSize } from '../size';
 import UrlTile from '../source/UrlTile';
-import {getKeyZXY} from '../tilecoord';
-import {createXYZ, extentFromProjection, createForProjection} from '../tilegrid';
+import { LoadFunction, UrlFunction } from '../Tile';
+import { getKeyZXY, TileCoord } from '../tilecoord';
+import { createForProjection, createXYZ, extentFromProjection } from '../tilegrid';
+import TileGrid from '../tilegrid/TileGrid';
+import TileState from '../TileState';
+import VectorImageTile, { defaultLoadFunction } from '../VectorImageTile';
+import Tile, { TileClass } from '../VectorTile';
+import { AttributionLike } from './Source';
+import SourceState from './State';
 
 /**
  * @typedef {Object} Options
@@ -53,6 +60,26 @@ import {createXYZ, extentFromProjection, createForProjection} from '../tilegrid'
  * render multiple worlds.
  */
 
+export interface Options {
+	extent: Extent;
+	maxZoom: number;
+	minZoom: number;
+	tileSize: number;
+	attributions: AttributionLike;
+	cacheSize: number;
+	format: FeatureFormat;
+	overlaps: boolean;
+	projection: ProjectionLike;
+	state: SourceState;
+	tileClass: TileClass;
+	tileGrid: TileGrid;
+	tileLoadFunction: LoadFunction;
+	tileUrlFunction: UrlFunction;
+	url: string;
+	transition: number;
+	urls: string[];
+	wrapX: boolean;
+}
 
 /**
  * @classdesc
@@ -70,145 +97,148 @@ import {createXYZ, extentFromProjection, createForProjection} from '../tilegrid'
  * @param {module:ol/source/VectorTile~Options=} options Vector tile options.
  * @api
  */
-const VectorTile = function(options) {
-  const projection = options.projection || 'EPSG:3857';
+export default class VectorTile extends UrlTile {
+	public tileClass: TileClass | typeof Tile;
+	private format_: FeatureFormat | null;
+	private sourceTiles_: { [s: string]: Tile; };
+	private overlaps_: boolean;
+	private tileGrids_: { [s: string]: TileGrid; };
+	constructor(options: Partial<Options>) {
+		const projection = options.projection || 'EPSG:3857';
 
-  const extent = options.extent || extentFromProjection(projection);
+		const extent = options.extent || extentFromProjection(projection);
 
-  const tileGrid = options.tileGrid || createXYZ({
-    extent: extent,
-    maxZoom: options.maxZoom || 22,
-    minZoom: options.minZoom,
-    tileSize: options.tileSize || 512
-  });
+		const tileGrid = options.tileGrid || createXYZ({
+			extent,
+			maxZoom: options.maxZoom || 22,
+			minZoom: options.minZoom,
+			tileSize: options.tileSize || 512
+		});
 
-  UrlTile.call(this, {
-    attributions: options.attributions,
-    cacheSize: options.cacheSize !== undefined ? options.cacheSize : 128,
-    extent: extent,
-    opaque: false,
-    projection: projection,
-    state: options.state,
-    tileGrid: tileGrid,
-    tileLoadFunction: options.tileLoadFunction ? options.tileLoadFunction : defaultLoadFunction,
-    tileUrlFunction: options.tileUrlFunction,
-    url: options.url,
-    urls: options.urls,
-    wrapX: options.wrapX === undefined ? true : options.wrapX,
-    transition: options.transition
-  });
+		super({
+			attributions: options.attributions,
+			cacheSize: options.cacheSize !== undefined ? options.cacheSize : 128,
+			extent,
+			opaque: false,
+			projection,
+			state: options.state,
+			tileGrid,
+			tileLoadFunction: options.tileLoadFunction ? options.tileLoadFunction : defaultLoadFunction as LoadFunction,
+			tileUrlFunction: options.tileUrlFunction,
+			transition: options.transition,
+			url: options.url,
+			urls: options.urls,
+			wrapX: options.wrapX === undefined ? true : options.wrapX
+		});
 
-  /**
-   * @private
-   * @type {module:ol/format/Feature}
-   */
-  this.format_ = options.format ? options.format : null;
+		/**
+		 * @private
+		 * @type {module:ol/format/Feature}
+		 */
+		this.format_ = options.format ? options.format : null;
 
-  /**
-     * @private
-     * @type {Object.<string, module:ol/VectorTile>}
-     */
-  this.sourceTiles_ = {};
+		/**
+		 * @private
+		 * @type {Object.<string, module:ol/VectorTile>}
+		 */
+		this.sourceTiles_ = {};
 
-  /**
-   * @private
-   * @type {boolean}
-   */
-  this.overlaps_ = options.overlaps == undefined ? true : options.overlaps;
+		/**
+		 * @private
+		 * @type {boolean}
+		 */
+		this.overlaps_ = options.overlaps === undefined ? true : options.overlaps;
 
-  /**
-     * @protected
-     * @type {function(new: module:ol/VectorTile, module:ol/tilecoord~TileCoord, module:ol/TileState, string,
-     *        module:ol/format/Feature, module:ol/Tile~LoadFunction)}
-     */
-  this.tileClass = options.tileClass ? options.tileClass : Tile;
+		/**
+		 * @protected
+		 * @type {function(new: module:ol/VectorTile, module:ol/tilecoord~TileCoord, module:ol/TileState, string,
+		 *        module:ol/format/Feature, module:ol/Tile~LoadFunction)}
+		 */
+		this.tileClass = options.tileClass ? options.tileClass : Tile;
 
-  /**
-   * @private
-   * @type {Object.<string, module:ol/tilegrid/TileGrid>}
-   */
-  this.tileGrids_ = {};
+		/**
+		 * @private
+		 * @type {Object.<string, module:ol/tilegrid/TileGrid>}
+		 */
+		this.tileGrids_ = {};
 
-};
+	}
 
-inherits(VectorTile, UrlTile);
+	/**
+	 * @return {boolean} The source can have overlapping geometries.
+	 */
+	public getOverlaps() {
+		return this.overlaps_;
+	}
 
+	/**
+	 * clear {@link module:ol/TileCache~TileCache} and delete all source tiles
+	 * @api
+	 */
+	public clear() {
+		this.tileCache.clear();
+		this.sourceTiles_ = {};
+	}
 
-/**
- * @return {boolean} The source can have overlapping geometries.
- */
-VectorTile.prototype.getOverlaps = function() {
-  return this.overlaps_;
-};
+	/**
+	 * @inheritDoc
+	 */
+	public getTile(z: number, x: number, y: number, pixelRatio: number, projection: Projection) {
+		const tileCoordKey = getKeyZXY(z, x, y);
+		if (this.tileCache.containsKey(tileCoordKey)) {
+			return (
+			/** @type {!module:ol/Tile} */ (this.tileCache.get(tileCoordKey))
+			);
+		} else {
+			const tileCoord = [z, x, y] as TileCoord;
+			const urlTileCoord = this.getTileCoordForTileUrlFunction(
+				tileCoord, projection);
+			const tile = new VectorImageTile(
+				tileCoord,
+				urlTileCoord !== null ? TileState.IDLE : TileState.EMPTY,
+				this.getRevision(),
+				this.format_!, this.tileLoadFunction!, urlTileCoord!, this.tileUrlFunction,
+				this.tileGrid!, this.getTileGridForProjection(projection),
+				this.sourceTiles_, pixelRatio, projection, this.tileClass as any,	// todo TileClass is not compatable
+				this.handleTileChange.bind(this), tileCoord[0]);
 
-/**
- * clear {@link module:ol/TileCache~TileCache} and delete all source tiles
- * @api
- */
-VectorTile.prototype.clear = function() {
-  this.tileCache.clear();
-  this.sourceTiles_ = {};
-};
-
-/**
- * @inheritDoc
- */
-VectorTile.prototype.getTile = function(z, x, y, pixelRatio, projection) {
-  const tileCoordKey = getKeyZXY(z, x, y);
-  if (this.tileCache.containsKey(tileCoordKey)) {
-    return (
-      /** @type {!module:ol/Tile} */ (this.tileCache.get(tileCoordKey))
-    );
-  } else {
-    const tileCoord = [z, x, y];
-    const urlTileCoord = this.getTileCoordForTileUrlFunction(
-      tileCoord, projection);
-    const tile = new VectorImageTile(
-      tileCoord,
-      urlTileCoord !== null ? TileState.IDLE : TileState.EMPTY,
-      this.getRevision(),
-      this.format_, this.tileLoadFunction, urlTileCoord, this.tileUrlFunction,
-      this.tileGrid, this.getTileGridForProjection(projection),
-      this.sourceTiles_, pixelRatio, projection, this.tileClass,
-      this.handleTileChange.bind(this), tileCoord[0]);
-
-    this.tileCache.set(tileCoordKey, tile);
-    return tile;
-  }
-};
-
-
-/**
- * @inheritDoc
- */
-VectorTile.prototype.getTileGridForProjection = function(projection) {
-  const code = projection.getCode();
-  let tileGrid = this.tileGrids_[code];
-  if (!tileGrid) {
-    // A tile grid that matches the tile size of the source tile grid is more
-    // likely to have 1:1 relationships between source tiles and rendered tiles.
-    const sourceTileGrid = this.tileGrid;
-    tileGrid = this.tileGrids_[code] = createForProjection(projection, undefined,
-      sourceTileGrid ? sourceTileGrid.getTileSize(sourceTileGrid.getMinZoom()) : undefined);
-  }
-  return tileGrid;
-};
+			this.tileCache.set(tileCoordKey, tile);
+			return tile;
+		}
+	}
 
 
-/**
- * @inheritDoc
- */
-VectorTile.prototype.getTilePixelRatio = function(pixelRatio) {
-  return pixelRatio;
-};
+	/**
+	 * @inheritDoc
+	 */
+	public getTileGridForProjection(projection: Projection) {
+		const code = projection.getCode();
+		let tileGrid = this.tileGrids_[code];
+		if (!tileGrid) {
+			// A tile grid that matches the tile size of the source tile grid is more
+			// likely to have 1:1 relationships between source tiles and rendered tiles.
+			const sourceTileGrid = this.tileGrid;
+			tileGrid = this.tileGrids_[code] = createForProjection(projection, undefined,
+				sourceTileGrid ? sourceTileGrid.getTileSize(sourceTileGrid.getMinZoom()) as Size : undefined);
+		}
+		return tileGrid;
+	}
 
 
-/**
- * @inheritDoc
- */
-VectorTile.prototype.getTilePixelSize = function(z, pixelRatio, projection) {
-  const tileGrid = this.getTileGridForProjection(projection);
-  const tileSize = toSize(tileGrid.getTileSize(z), this.tmpSize);
-  return [Math.round(tileSize[0] * pixelRatio), Math.round(tileSize[1] * pixelRatio)];
-};
-export default VectorTile;
+	/**
+	 * @inheritDoc
+	 */
+	public getTilePixelRatio(pixelRatio: number) {
+		return pixelRatio;
+	}
+
+
+	/**
+	 * @inheritDoc
+	 */
+	public getTilePixelSize(z: number, pixelRatio: number, projection: Projection) {
+		const tileGrid = this.getTileGridForProjection(projection);
+		const tileSize = toSize(tileGrid.getTileSize(z), this.tmpSize);
+		return [Math.round(tileSize[0] * pixelRatio), Math.round(tileSize[1] * pixelRatio)] as Size;
+	}
+}

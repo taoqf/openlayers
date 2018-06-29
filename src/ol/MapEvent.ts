@@ -18,7 +18,7 @@ import PluggableMap, { FrameState } from './PluggableMap';
 export default class MapEvent extends Event {
 	public map: PluggableMap;
 	public frameState: FrameState | null;
-	constructor(type: string, map: PluggableMap, opt_frameState?: FrameState) {
+	constructor(type: string, map: PluggableMap, opt_frameState?: FrameState | null) {
 		super(type);
 
 		/**

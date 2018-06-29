@@ -159,7 +159,7 @@ export default class Layer extends BaseLayer {
 	public getSource() {
 		const source = this.get(LayerProperty.SOURCE);
 		return (
-	/** @type {module:ol/source/Source} */ (source) || null
+	/** @type {module:ol/source/Source} */ (source as Source) || null
 		);
 	}
 

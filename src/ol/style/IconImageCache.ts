@@ -108,3 +108,5 @@ export default class IconImageCache {
 	 * @api
 	 */
 }
+
+export const shared = new IconImageCache();

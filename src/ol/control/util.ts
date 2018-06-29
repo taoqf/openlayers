@@ -3,6 +3,7 @@
  */
 import Collection from '../Collection';
 import Attribution, { Options as AttributionOptions } from './Attribution';
+import Control from './Control';
 import Rotate, { Options as RotateOptions } from './Rotate';
 import Zoom, { Options as ZoomOptions } from './Zoom';
 
@@ -50,7 +51,7 @@ export interface DefaultsOptions {
 export function defaults(opt_options?: Partial<DefaultsOptions>) {
 	const options = opt_options ? opt_options : {};
 
-	const controls = new Collection();
+	const controls = new Collection<Control>();
 
 	const zoomControl = options.zoom !== undefined ? options.zoom : true;
 	if (zoomControl) {

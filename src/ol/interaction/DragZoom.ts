@@ -1,12 +1,11 @@
 /**
  * @module ol/interaction/DragZoom
  */
-import {inherits} from '../index';
-import {easeOut} from '../easing';
-import {shiftKeyOnly} from '../events/condition';
-import {createOrUpdateFromCoordinates, getBottomLeft, getCenter, getTopRight, scaleFromCenter} from '../extent';
+import { Coordinate } from '../coordinate';
+import { easeOut } from '../easing';
+import { Condition, shiftKeyOnly } from '../events/condition';
+import { createOrUpdateFromCoordinates, getBottomLeft, getCenter, getTopRight, scaleFromCenter } from '../extent';
 import DragBox from '../interaction/DragBox';
-
 
 /**
  * @typedef {Object} Options
@@ -20,6 +19,12 @@ import DragBox from '../interaction/DragBox';
  * @property {boolean} [out=false] Use interaction for zooming out.
  */
 
+export interface Options {
+	className: string;
+	condition: Condition;
+	duration: number;
+	out: boolean;
+}
 
 /**
  * @classdesc
@@ -35,68 +40,66 @@ import DragBox from '../interaction/DragBox';
  * @param {module:ol/interaction/DragZoom~Options=} opt_options Options.
  * @api
  */
-const DragZoom = function(opt_options) {
-  const options = opt_options ? opt_options : {};
+export default class DragZoom extends DragBox {
+	private duration_: number;
+	private out_: boolean;
+	constructor(opt_options?: Partial<Options>) {
+		const options = opt_options ? opt_options : {};
 
-  const condition = options.condition ? options.condition : shiftKeyOnly;
+		const condition = options.condition ? options.condition : shiftKeyOnly as Condition;
 
-  /**
-   * @private
-   * @type {number}
-   */
-  this.duration_ = options.duration !== undefined ? options.duration : 200;
+		super({
+			className: options.className || 'ol-dragzoom',
+			condition
+		});
+		/**
+		 * @private
+		 * @type {number}
+		 */
+		this.duration_ = options.duration !== undefined ? options.duration : 200;
 
-  /**
-   * @private
-   * @type {boolean}
-   */
-  this.out_ = options.out !== undefined ? options.out : false;
-
-  DragBox.call(this, {
-    condition: condition,
-    className: options.className || 'ol-dragzoom'
-  });
-
-};
-
-inherits(DragZoom, DragBox);
+		/**
+		 * @private
+		 * @type {boolean}
+		 */
+		this.out_ = options.out !== undefined ? options.out : false;
 
 
-/**
- * @inheritDoc
- */
-DragZoom.prototype.onBoxEnd = function() {
-  const map = this.getMap();
+	}
 
-  const view = /** @type {!module:ol/View} */ (map.getView());
+	/**
+	 * @inheritDoc
+	 */
+	public onBoxEnd() {
+		const map = this.getMap()!;
+		const view = /** @type {!module:ol/View} */ (map.getView());
 
-  const size = /** @type {!module:ol/size~Size} */ (map.getSize());
+		const size = /** @type {!module:ol/size~Size} */ (map.getSize());
 
-  let extent = this.getGeometry().getExtent();
+		let extent = this.getGeometry()!.getExtent();
 
-  if (this.out_) {
-    const mapExtent = view.calculateExtent(size);
-    const boxPixelExtent = createOrUpdateFromCoordinates([
-      map.getPixelFromCoordinate(getBottomLeft(extent)),
-      map.getPixelFromCoordinate(getTopRight(extent))]);
-    const factor = view.getResolutionForExtent(boxPixelExtent, size);
+		if (this.out_) {
+			const mapExtent = view.calculateExtent(size);
+			const boxPixelExtent = createOrUpdateFromCoordinates([
+				map.getPixelFromCoordinate(getBottomLeft(extent)),
+				map.getPixelFromCoordinate(getTopRight(extent))] as Coordinate[])!;
+			const factor = view.getResolutionForExtent(boxPixelExtent, size);
 
-    scaleFromCenter(mapExtent, 1 / factor);
-    extent = mapExtent;
-  }
+			scaleFromCenter(mapExtent, 1 / factor);
+			extent = mapExtent;
+		}
 
-  const resolution = view.constrainResolution(
-    view.getResolutionForExtent(extent, size));
+		const resolution = view.constrainResolution(
+			view.getResolutionForExtent(extent, size));
 
-  let center = getCenter(extent);
-  center = view.constrainCenter(center);
+		const c = getCenter(extent);
+		const center = view.constrainCenter(c);
 
-  view.animate({
-    resolution: resolution,
-    center: center,
-    duration: this.duration_,
-    easing: easeOut
-  });
-
-};
-export default DragZoom;
+		view.animate({
+			center,
+			duration: this.duration_,
+			easing: easeOut,
+			resolution
+		});
+	}
+}

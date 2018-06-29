@@ -1,7 +1,6 @@
 /**
  * @module ol/webgl/Shader
  */
-import { FALSE } from '../functions';
 
 /**
  * @constructor
@@ -9,11 +8,7 @@ import { FALSE } from '../functions';
  * @param {string} source Source.
  * @struct
  */
-export default class WebGLShader {
-	/**
-	 * @return {boolean} Is animated?
-	 */
-	public isAnimated = FALSE;
+export default abstract class WebGLShader {
 	private source: string;
 	constructor(source: string) {
 		this.source = source;
@@ -22,9 +17,13 @@ export default class WebGLShader {
 	 * @abstract
 	 * @return {number} Type.
 	 */
-	public getType() { }
-
-
+	public abstract getType(): number;
+	/**
+	 * @return {boolean} Is animated?
+	 */
+	public isAnimated() {
+		return false;
+	}
 	/**
 	 * @return {string} Source.
 	 */

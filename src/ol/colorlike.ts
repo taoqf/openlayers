@@ -25,7 +25,7 @@ export type ColorLike = string | CanvasPattern | CanvasGradient;
  */
 export function asColorLike(color: Color | ColorLike) {
 	if (isColorLike(color)) {
-		return /** @type {string|CanvasPattern|CanvasGradient} */ (color);
+		return /** @type {string|CanvasPattern|CanvasGradient} */ (color as string | CanvasPattern | CanvasGradient);
 	} else {
 		return toString(/** @type {module:ol/color~Color} */(color as Color));
 	}

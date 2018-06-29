@@ -130,7 +130,7 @@ export default class Collection<T> extends BaseObject {
 	 *     index and the array). The return value is ignored.
 	 * @api
 	 */
-	public forEach(f: (v: T, i: number, arr: T[]) => any) {
+	public forEach(f: (v: T, i: number, arr: T[]) => void) {
 		const array = this.array_;
 		for (let i = 0, ii = array.length; i < ii; ++i) {
 			f(array[i], i, array);

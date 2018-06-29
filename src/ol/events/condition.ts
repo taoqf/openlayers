@@ -2,9 +2,11 @@
  * @module ol/events/condition
  */
 import { assert } from '../asserts';
-import { FALSE, TRUE } from '../functions';
 import { MAC, WEBKIT } from '../has';
+import MapBrowserEvent from '../MapBrowserEvent';
 import MapBrowserEventType from '../MapBrowserEventType';
+import MapBrowserPointerEvent from '../MapBrowserPointerEvent';
+import PointerEvent from '../pointer/PointerEvent';
 
 
 /**
@@ -14,6 +16,7 @@ import MapBrowserEventType from '../MapBrowserEventType';
  * @typedef {function(this: ?, module:ol/MapBrowserEvent): boolean} Condition
  */
 
+export type Condition = (this: any, module: MapBrowserEvent) => boolean;
 
 /**
  * Return `true` if only the alt-key is pressed, `false` otherwise (e.g. when
@@ -23,8 +26,8 @@ import MapBrowserEventType from '../MapBrowserEventType';
  * @return {boolean} True if only the alt key is pressed.
  * @api
  */
-export function altKeyOnly(mapBrowserEvent) {
-	const originalEvent = mapBrowserEvent.originalEvent;
+export function altKeyOnly(mapBrowserEvent: MapBrowserEvent) {
+	const originalEvent = mapBrowserEvent.originalEvent as PointerEvent;
 	return (
 		originalEvent.altKey &&
 		!(originalEvent.metaKey || originalEvent.ctrlKey) &&
@@ -40,13 +43,13 @@ export function altKeyOnly(mapBrowserEvent) {
  * @return {boolean} True if only the alt and shift keys are pressed.
  * @api
  */
-export const altShiftKeysOnly = function (mapBrowserEvent) {
-	const originalEvent = mapBrowserEvent.originalEvent;
+export function altShiftKeysOnly(mapBrowserEvent: MapBrowserEvent) {
+	const originalEvent = mapBrowserEvent.originalEvent as PointerEvent;
 	return (
 		originalEvent.altKey &&
 		!(originalEvent.metaKey || originalEvent.ctrlKey) &&
 		originalEvent.shiftKey);
-};
+}
 
 
 /**
@@ -57,9 +60,9 @@ export const altShiftKeysOnly = function (mapBrowserEvent) {
  * @return {boolean} The map has the focus.
  * @api
  */
-export const focus = function (event) {
+export function focus(event: MapBrowserEvent) {
 	return event.target.getTargetElement() === document.activeElement;
-};
+}
 
 
 /**
@@ -70,7 +73,9 @@ export const focus = function (event) {
  * @function
  * @api
  */
-export const always = TRUE;
+export function always(_e: MapBrowserEvent) {
+	return true;
+}
 
 
 /**
@@ -80,9 +85,9 @@ export const always = TRUE;
  * @return {boolean} True if the event is a map `click` event.
  * @api
  */
-export const click = function (mapBrowserEvent) {
-	return mapBrowserEvent.type == MapBrowserEventType.CLICK;
-};
+export function click(mapBrowserEvent: MapBrowserEvent) {
+	return mapBrowserEvent.type === MapBrowserEventType.CLICK;
+}
 
 
 /**
@@ -94,11 +99,11 @@ export const click = function (mapBrowserEvent) {
  * @param {module:ol/MapBrowserEvent} mapBrowserEvent Map browser event.
  * @return {boolean} The result.
  */
-export const mouseActionButton = function (mapBrowserEvent) {
-	const originalEvent = mapBrowserEvent.originalEvent;
-	return originalEvent.button == 0 &&
+export function mouseActionButton(mapBrowserEvent: MapBrowserEvent) {
+	const originalEvent = mapBrowserEvent.originalEvent as PointerEvent;
+	return originalEvent.button === 0 &&
 		!(WEBKIT && MAC && originalEvent.ctrlKey);
-};
+}
 
 
 /**
@@ -109,7 +114,9 @@ export const mouseActionButton = function (mapBrowserEvent) {
  * @function
  * @api
  */
-export const never = FALSE;
+export function never(_e: MapBrowserEvent) {
+	return false;
+}
 
 
 /**
@@ -120,9 +127,9 @@ export const never = FALSE;
  * @return {boolean} True if the browser event is a `pointermove` event.
  * @api
  */
-export const pointerMove = function (mapBrowserEvent) {
-	return mapBrowserEvent.type == 'pointermove';
-};
+export function pointerMove(mapBrowserEvent: MapBrowserEvent) {
+	return mapBrowserEvent.type === 'pointermove';
+}
 
 
 /**
@@ -132,9 +139,9 @@ export const pointerMove = function (mapBrowserEvent) {
  * @return {boolean} True if the event is a map `singleclick` event.
  * @api
  */
-export const singleClick = function (mapBrowserEvent) {
-	return mapBrowserEvent.type == MapBrowserEventType.SINGLECLICK;
-};
+export function singleClick(mapBrowserEvent: MapBrowserEvent) {
+	return mapBrowserEvent.type === MapBrowserEventType.SINGLECLICK;
+}
 
 
 /**
@@ -144,9 +151,9 @@ export const singleClick = function (mapBrowserEvent) {
  * @return {boolean} True if the event is a map `dblclick` event.
  * @api
  */
-export const doubleClick = function (mapBrowserEvent) {
-	return mapBrowserEvent.type == MapBrowserEventType.DBLCLICK;
-};
+export function doubleClick(mapBrowserEvent: MapBrowserEvent) {
+	return mapBrowserEvent.type === MapBrowserEventType.DBLCLICK;
+}
 
 
 /**
@@ -157,13 +164,13 @@ export const doubleClick = function (mapBrowserEvent) {
  * @return {boolean} True only if there no modifier keys are pressed.
  * @api
  */
-export const noModifierKeys = function (mapBrowserEvent) {
-	const originalEvent = mapBrowserEvent.originalEvent;
+export function noModifierKeys(mapBrowserEvent: MapBrowserEvent) {
+	const originalEvent = mapBrowserEvent.originalEvent as PointerEvent;
 	return (
 		!originalEvent.altKey &&
 		!(originalEvent.metaKey || originalEvent.ctrlKey) &&
 		!originalEvent.shiftKey);
-};
+}
 
 
 /**
@@ -175,12 +182,12 @@ export const noModifierKeys = function (mapBrowserEvent) {
  * @return {boolean} True if only the platform modifier key is pressed.
  * @api
  */
-export const platformModifierKeyOnly = function (mapBrowserEvent) {
-	const originalEvent = mapBrowserEvent.originalEvent;
+export function platformModifierKeyOnly(mapBrowserEvent: MapBrowserEvent) {
+	const originalEvent = mapBrowserEvent.originalEvent as PointerEvent;
 	return !originalEvent.altKey &&
 		(MAC ? originalEvent.metaKey : originalEvent.ctrlKey) &&
 		!originalEvent.shiftKey;
-};
+}
 
 
 /**
@@ -191,13 +198,13 @@ export const platformModifierKeyOnly = function (mapBrowserEvent) {
  * @return {boolean} True if only the shift key is pressed.
  * @api
  */
-export const shiftKeyOnly = function (mapBrowserEvent) {
-	const originalEvent = mapBrowserEvent.originalEvent;
+export function shiftKeyOnly(mapBrowserEvent: MapBrowserEvent) {
+	const originalEvent = mapBrowserEvent.originalEvent as PointerEvent;
 	return (
 		!originalEvent.altKey &&
 		!(originalEvent.metaKey || originalEvent.ctrlKey) &&
 		originalEvent.shiftKey);
-};
+}
 
 
 /**
@@ -208,14 +215,14 @@ export const shiftKeyOnly = function (mapBrowserEvent) {
  * @return {boolean} True only if the target element is not editable.
  * @api
  */
-export const targetNotEditable = function (mapBrowserEvent) {
+export function targetNotEditable(mapBrowserEvent: MapBrowserEvent) {
 	const target = mapBrowserEvent.originalEvent.target;
 	const tagName = target.tagName;
 	return (
 		tagName !== 'INPUT' &&
 		tagName !== 'SELECT' &&
 		tagName !== 'TEXTAREA');
-};
+}
 
 
 /**
@@ -225,13 +232,13 @@ export const targetNotEditable = function (mapBrowserEvent) {
  * @return {boolean} True if the event originates from a mouse device.
  * @api
  */
-export const mouseOnly = function (mapBrowserEvent) {
+export function mouseOnly(mapBrowserEvent: MapBrowserPointerEvent) {
 	assert(mapBrowserEvent.pointerEvent, 56); // mapBrowserEvent must originate from a pointer event
 	// see http://www.w3.org/TR/pointerevents/#widl-PointerEvent-pointerType
 	return (
-    /** @type {module:ol/MapBrowserEvent} */ (mapBrowserEvent).pointerEvent.pointerType == 'mouse'
+			/** @type {module:ol/MapBrowserEvent} */ (mapBrowserEvent).pointerEvent.pointerType === 'mouse'
 	);
-};
+}
 
 
 /**
@@ -243,7 +250,7 @@ export const mouseOnly = function (mapBrowserEvent) {
  * @return {boolean} True if the event originates from a primary pointer.
  * @api
  */
-export const primaryAction = function (mapBrowserEvent) {
+export function primaryAction(mapBrowserEvent: MapBrowserPointerEvent) {
 	const pointerEvent = mapBrowserEvent.pointerEvent;
 	return pointerEvent.isPrimary && pointerEvent.button === 0;
-};
+}

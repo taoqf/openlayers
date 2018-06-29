@@ -1,9 +1,13 @@
 /**
  * @module ol/source/XYZ
  */
-import {inherits} from '../index';
+import { ProjectionLike } from '../proj';
+import { Size } from '../size';
 import TileImage from '../source/TileImage';
-import {createXYZ, extentFromProjection} from '../tilegrid';
+import { LoadFunction, UrlFunction } from '../Tile';
+import { createXYZ, extentFromProjection } from '../tilegrid';
+import TileGrid from '../tilegrid/TileGrid';
+import { AttributionLike } from './Source';
 
 /**
  * @typedef {Object} Options
@@ -43,6 +47,26 @@ import {createXYZ, extentFromProjection} from '../tilegrid';
  * To disable the opacity transition, pass `transition: 0`.
  */
 
+export interface Options {
+	attributions: AttributionLike;
+	cacheSize: number;
+	crossOrigin: null | string;
+	opaque: boolean;
+	projection: ProjectionLike;
+	reprojectionErrorThreshold: number;	// todo string?
+	maxZoom: number;
+	minZoom: number;
+	tileGrid: TileGrid;
+	tileLoadFunction: LoadFunction;
+	tilePixelRatio: number;
+	tileSize: number | Size;
+	tileUrlFunction: UrlFunction;
+	url: string;
+	urls: string[];
+	wrapX: boolean;
+	transition: number;
+}
+
 
 /**
  * @classdesc
@@ -66,37 +90,35 @@ import {createXYZ, extentFromProjection} from '../tilegrid';
  * @param {module:ol/source/XYZ~Options=} opt_options XYZ options.
  * @api
  */
-const XYZ = function(opt_options) {
-  const options = opt_options || {};
-  const projection = options.projection !== undefined ?
-    options.projection : 'EPSG:3857';
+export default class XYZ extends TileImage {
+	constructor(opt_options?: Partial<Options>) {
+		const options = opt_options || {};
+		const projection = options.projection !== undefined ?
+			options.projection : 'EPSG:3857';
 
-  const tileGrid = options.tileGrid !== undefined ? options.tileGrid :
-    createXYZ({
-      extent: extentFromProjection(projection),
-      maxZoom: options.maxZoom,
-      minZoom: options.minZoom,
-      tileSize: options.tileSize
-    });
+		const tileGrid = options.tileGrid !== undefined ? options.tileGrid :
+			createXYZ({
+				extent: extentFromProjection(projection),
+				maxZoom: options.maxZoom,
+				minZoom: options.minZoom,
+				tileSize: options.tileSize
+			});
 
-  TileImage.call(this, {
-    attributions: options.attributions,
-    cacheSize: options.cacheSize,
-    crossOrigin: options.crossOrigin,
-    opaque: options.opaque,
-    projection: projection,
-    reprojectionErrorThreshold: options.reprojectionErrorThreshold,
-    tileGrid: tileGrid,
-    tileLoadFunction: options.tileLoadFunction,
-    tilePixelRatio: options.tilePixelRatio,
-    tileUrlFunction: options.tileUrlFunction,
-    url: options.url,
-    urls: options.urls,
-    wrapX: options.wrapX !== undefined ? options.wrapX : true,
-    transition: options.transition
-  });
-
-};
-
-inherits(XYZ, TileImage);
-export default XYZ;
+		super({
+			attributions: options.attributions,
+			cacheSize: options.cacheSize,
+			crossOrigin: options.crossOrigin,
+			opaque: options.opaque,
+			projection,
+			reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+			tileGrid,
+			tileLoadFunction: options.tileLoadFunction,
+			tilePixelRatio: options.tilePixelRatio,
+			tileUrlFunction: options.tileUrlFunction,
+			transition: options.transition,
+			url: options.url,
+			urls: options.urls,
+			wrapX: options.wrapX !== undefined ? options.wrapX : true
+		});
+	}
+}

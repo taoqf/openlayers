@@ -82,7 +82,7 @@ export function buffer(extent: Extent, value: number, opt_extent?: Extent): Exte
  * @param {module:ol/extent~Extent=} opt_extent Extent.
  * @return {module:ol/extent~Extent} The clone.
  */
-export function clone(extent: Extent, opt_extent?: Extent) {
+export function clone(extent: Extent, opt_extent?: Extent | null) {
 	if (opt_extent) {
 		opt_extent[0] = extent[0];
 		opt_extent[1] = extent[1];
@@ -90,7 +90,7 @@ export function clone(extent: Extent, opt_extent?: Extent) {
 		opt_extent[3] = extent[3];
 		return opt_extent;
 	} else {
-		return extent.slice();
+		return extent.slice() as Extent;
 	}
 }
 
@@ -220,7 +220,7 @@ export function createEmpty() {
  * @param {module:ol/extent~Extent=} opt_extent Destination extent.
  * @return {module:ol/extent~Extent} Extent.
  */
-export function createOrUpdate(minX: number, minY: number, maxX: number, maxY: number, opt_extent?: Extent) {
+export function createOrUpdate(minX: number, minY: number, maxX: number, maxY: number, opt_extent?: Extent | null) {
 	if (opt_extent) {
 		opt_extent[0] = minX;
 		opt_extent[1] = minY;
@@ -238,7 +238,7 @@ export function createOrUpdate(minX: number, minY: number, maxX: number, maxY: n
  * @param {module:ol/extent~Extent=} opt_extent Extent.
  * @return {module:ol/extent~Extent} Extent.
  */
-export function createOrUpdateEmpty(opt_extent?: Extent) {
+export function createOrUpdateEmpty(opt_extent?: Extent | null) {
 	return createOrUpdate(
 		Infinity, Infinity, -Infinity, -Infinity, opt_extent);
 }

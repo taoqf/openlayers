@@ -1,13 +1,13 @@
 /**
  * @module ol/interaction/DragRotate
  */
-import {inherits} from '../index';
-import {disable} from '../rotationconstraint';
-import ViewHint from '../ViewHint';
-import {altShiftKeysOnly, mouseOnly, mouseActionButton} from '../events/condition';
-import {FALSE} from '../functions';
-import {rotate, rotateWithoutConstraints} from '../interaction/Interaction';
+import { altShiftKeysOnly, Condition, mouseActionButton, mouseOnly } from '../events/condition';
+import { rotate, rotateWithoutConstraints } from '../interaction/Interaction';
 import PointerInteraction from '../interaction/Pointer';
+import MapBrowserEvent from '../MapBrowserEvent';
+import MapBrowserPointerEvent from '../MapBrowserPointerEvent';
+import { disable } from '../rotationconstraint';
+import ViewHint from '../ViewHint';
 
 
 /**
@@ -19,6 +19,10 @@ import PointerInteraction from '../interaction/Pointer';
  * @property {number} [duration=250] Animation duration in milliseconds.
  */
 
+export interface Options {
+	condition: Condition;
+	duration: number;
+}
 
 /**
  * @classdesc
@@ -33,107 +37,115 @@ import PointerInteraction from '../interaction/Pointer';
  * @param {module:ol/interaction/DragRotate~Options=} opt_options Options.
  * @api
  */
-const DragRotate = function(opt_options) {
+export default class DragRotate extends PointerInteraction {
+	private condition_: Condition | ((mapBrowserEvent: MapBrowserEvent) => boolean | undefined);
+	private lastAngle_: number | undefined;
+	private duration_: number;
+	constructor(opt_options?: Partial<Options>) {
 
-  const options = opt_options ? opt_options : {};
+		const options = opt_options ? opt_options : {};
 
-  PointerInteraction.call(this, {
-    handleDownEvent: handleDownEvent,
-    handleDragEvent: handleDragEvent,
-    handleUpEvent: handleUpEvent
-  });
+		super({
+			handleDownEvent: (e) => {
+				return this.handleDownEvent(e);
+			},
+			handleDragEvent: (e) => {
+				return this.handleDragEvent(e);
+			},
+			handleUpEvent: (e) => {
+				return this.handleUpEvent(e);
+			}
+		});
 
-  /**
-   * @private
-   * @type {module:ol/events/condition~Condition}
-   */
-  this.condition_ = options.condition ? options.condition : altShiftKeysOnly;
+		/**
+		 * @private
+		 * @type {module:ol/events/condition~Condition}
+		 */
+		this.condition_ = options.condition ? options.condition : altShiftKeysOnly;
 
-  /**
-   * @private
-   * @type {number|undefined}
-   */
-  this.lastAngle_ = undefined;
+		/**
+		 * @private
+		 * @type {number|undefined}
+		 */
+		this.lastAngle_ = undefined;
 
-  /**
-   * @private
-   * @type {number}
-   */
-  this.duration_ = options.duration !== undefined ? options.duration : 250;
-};
-
-inherits(DragRotate, PointerInteraction);
+		/**
+		 * @private
+		 * @type {number}
+		 */
+		this.duration_ = options.duration !== undefined ? options.duration : 250;
+	}
 
 
-/**
- * @param {module:ol/MapBrowserPointerEvent} mapBrowserEvent Event.
- * @this {module:ol/interaction/DragRotate}
- */
-function handleDragEvent(mapBrowserEvent) {
-  if (!mouseOnly(mapBrowserEvent)) {
-    return;
-  }
+	/**
+	 * @inheritDoc
+	 */
+	public shouldStopEvent() {
+		return false;
+	}
+	/**
+	 * @param {module:ol/MapBrowserPointerEvent} mapBrowserEvent Event.
+	 * @this {module:ol/interaction/DragRotate}
+	 */
+	private handleDragEvent(mapBrowserEvent: MapBrowserPointerEvent) {
+		if (!mouseOnly(mapBrowserEvent)) {
+			return;
+		}
 
-  const map = mapBrowserEvent.map;
-  const view = map.getView();
-  if (view.getConstraints().rotation === disable) {
-    return;
-  }
-  const size = map.getSize();
-  const offset = mapBrowserEvent.pixel;
-  const theta =
-      Math.atan2(size[1] / 2 - offset[1], offset[0] - size[0] / 2);
-  if (this.lastAngle_ !== undefined) {
-    const delta = theta - this.lastAngle_;
-    const rotation = view.getRotation();
-    rotateWithoutConstraints(view, rotation - delta);
-  }
-  this.lastAngle_ = theta;
+		const map = mapBrowserEvent.map;
+		const view = map.getView();
+		if (view.getConstraints().rotation === disable) {
+			return;
+		}
+		const size = map.getSize();
+		const offset = mapBrowserEvent.pixel;
+		const theta =
+			Math.atan2(size[1] / 2 - offset[1], offset[0] - size[0] / 2);
+		if (this.lastAngle_ !== undefined) {
+			const delta = theta - this.lastAngle_;
+			const rotation = view.getRotation();
+			rotateWithoutConstraints(view, rotation - delta);
+		}
+		this.lastAngle_ = theta;
+	}
+
+
+	/**
+	 * @param {module:ol/MapBrowserPointerEvent} mapBrowserEvent Event.
+	 * @return {boolean} Stop drag sequence?
+	 * @this {module:ol/interaction/DragRotate}
+	 */
+	private handleUpEvent(mapBrowserEvent: MapBrowserPointerEvent) {
+		if (!mouseOnly(mapBrowserEvent)) {
+			return true;
+		}
+
+		const map = mapBrowserEvent.map;
+		const view = map.getView();
+		view.setHint(ViewHint.INTERACTING, -1);
+		const rotation = view.getRotation();
+		rotate(view, rotation, undefined, this.duration_);
+		return false;
+	}
+
+
+	/**
+	 * @param {module:ol/MapBrowserPointerEvent} mapBrowserEvent Event.
+	 * @return {boolean} Start drag sequence?
+	 * @this {module:ol/interaction/DragRotate}
+	 */
+	private handleDownEvent(mapBrowserEvent: MapBrowserPointerEvent) {
+		if (!mouseOnly(mapBrowserEvent)) {
+			return false;
+		}
+
+		if (mouseActionButton(mapBrowserEvent) && this.condition_(mapBrowserEvent)) {
+			const map = mapBrowserEvent.map;
+			map.getView().setHint(ViewHint.INTERACTING, 1);
+			this.lastAngle_ = undefined;
+			return true;
+		} else {
+			return false;
+		}
+	}
 }
-
-
-/**
- * @param {module:ol/MapBrowserPointerEvent} mapBrowserEvent Event.
- * @return {boolean} Stop drag sequence?
- * @this {module:ol/interaction/DragRotate}
- */
-function handleUpEvent(mapBrowserEvent) {
-  if (!mouseOnly(mapBrowserEvent)) {
-    return true;
-  }
-
-  const map = mapBrowserEvent.map;
-  const view = map.getView();
-  view.setHint(ViewHint.INTERACTING, -1);
-  const rotation = view.getRotation();
-  rotate(view, rotation, undefined, this.duration_);
-  return false;
-}
-
-
-/**
- * @param {module:ol/MapBrowserPointerEvent} mapBrowserEvent Event.
- * @return {boolean} Start drag sequence?
- * @this {module:ol/interaction/DragRotate}
- */
-function handleDownEvent(mapBrowserEvent) {
-  if (!mouseOnly(mapBrowserEvent)) {
-    return false;
-  }
-
-  if (mouseActionButton(mapBrowserEvent) && this.condition_(mapBrowserEvent)) {
-    const map = mapBrowserEvent.map;
-    map.getView().setHint(ViewHint.INTERACTING, 1);
-    this.lastAngle_ = undefined;
-    return true;
-  } else {
-    return false;
-  }
-}
-
-
-/**
- * @inheritDoc
- */
-DragRotate.prototype.shouldStopEvent = FALSE;
-export default DragRotate;

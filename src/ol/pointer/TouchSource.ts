@@ -56,7 +56,7 @@ const POINTER_TYPE = 'touch';
  * @extends {module:ol/pointer/EventSource}
  */
 export default class TouchSource extends EventSource {
-	public pointerMap: { [point: string]: string | Event; };
+	public pointerMap: { [point: string]: Event | any; };
 	public mouseSource: MouseSource;
 	private firstTouchId_: number | undefined;
 	private clickCount_: number;

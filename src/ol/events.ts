@@ -35,7 +35,7 @@ export interface EventsKey {
  * @typedef {function(module:ol/events/Event)|function(module:ol/events/Event): boolean} ListenerFunction
  * @api
  */
-export type ListenerFunction<T extends olEvent, S extends Event> = ((e: T) => boolean) | ((e: T) => void) | ((e: S) => boolean) | ((e: S) => void);
+export type ListenerFunction = ((e: olEvent) => boolean) | ((e: olEvent) => void) | ((e: Event) => boolean) | ((e: Event) => void) | ((e: any) => boolean) | ((e: any) => void);
 
 /**
  * @param {module:ol/events~EventsKey} listenerObj Listener object.

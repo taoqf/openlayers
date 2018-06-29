@@ -9,7 +9,7 @@
  * @param {number=} opt_height Canvas height.
  * @return {CanvasRenderingContext2D} The context.
  */
-export function createCanvasContext2D(opt_width: number, opt_height: number) {
+export function createCanvasContext2D(opt_width?: number, opt_height?: number) {
 	const canvas = /** @type {HTMLCanvasElement} */ (document.createElement('canvas'));
 	if (opt_width) {
 		canvas.width = opt_width;
@@ -17,7 +17,7 @@ export function createCanvasContext2D(opt_width: number, opt_height: number) {
 	if (opt_height) {
 		canvas.height = opt_height;
 	}
-	return /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
+	return /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d')!)!;
 }
 
 

@@ -1,6 +1,7 @@
 /**
  * @module ol/coordinate
  */
+import Circle from './geom/Circle';
 import { modulo } from './math';
 import { padNumber } from './string';
 
@@ -22,6 +23,7 @@ export type Coordinate = [number, number];
  * @api
  */
 
+export type CoordinateFormat = (coordinate: Coordinate | undefined) => string;
 
 /**
  * Add `delta` to `coordinate`. `coordinate` is modified in place and returned
@@ -55,7 +57,7 @@ export function add(coordinate: Coordinate, delta: Coordinate) {
  * @param {module:ol/geom/Circle} circle The circle.
  * @return {module:ol/coordinate~Coordinate} Closest point on the circumference.
  */
-export function closestOnCircle(coordinate: Coordinate, circle) {
+export function closestOnCircle(coordinate: Coordinate, circle: Circle) {
 	const r = circle.getRadius();
 	const center = circle.getCenter();
 	const x0 = center[0];

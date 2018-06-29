@@ -2,37 +2,38 @@
  * @module ol/interaction
  */
 import Collection from './Collection';
-import Kinetic from './Kinetic';
 import DoubleClickZoom from './interaction/DoubleClickZoom';
 import DragPan from './interaction/DragPan';
 import DragRotate from './interaction/DragRotate';
 import DragZoom from './interaction/DragZoom';
+import Interaction from './interaction/Interaction';
 import KeyboardPan from './interaction/KeyboardPan';
 import KeyboardZoom from './interaction/KeyboardZoom';
 import MouseWheelZoom from './interaction/MouseWheelZoom';
 import PinchRotate from './interaction/PinchRotate';
 import PinchZoom from './interaction/PinchZoom';
+import Kinetic from './Kinetic';
 
-export {default as DoubleClickZoom} from './interaction/DoubleClickZoom';
-export {default as DragAndDrop} from './interaction/DragAndDrop';
-export {default as DragBox} from './interaction/DragBox';
-export {default as DragPan} from './interaction/DragPan';
-export {default as DragRotate} from './interaction/DragRotate';
-export {default as DragRotateAndZoom} from './interaction/DragRotateAndZoom';
-export {default as DragZoom} from './interaction/DragZoom';
-export {default as Draw} from './interaction/Draw';
-export {default as Extent} from './interaction/Extent';
-export {default as Interaction} from './interaction/Interaction';
-export {default as KeyboardPan} from './interaction/KeyboardPan';
-export {default as KeyboardZoom} from './interaction/KeyboardZoom';
-export {default as Modify} from './interaction/Modify';
-export {default as MouseWheelZoom} from './interaction/MouseWheelZoom';
-export {default as PinchRotate} from './interaction/PinchRotate';
-export {default as PinchZoom} from './interaction/PinchZoom';
-export {default as Pointer} from './interaction/Pointer';
-export {default as Select} from './interaction/Select';
-export {default as Snap} from './interaction/Snap';
-export {default as Translate} from './interaction/Translate';
+export { default as DoubleClickZoom } from './interaction/DoubleClickZoom';
+export { default as DragAndDrop } from './interaction/DragAndDrop';
+export { default as DragBox } from './interaction/DragBox';
+export { default as DragPan } from './interaction/DragPan';
+export { default as DragRotate } from './interaction/DragRotate';
+export { default as DragRotateAndZoom } from './interaction/DragRotateAndZoom';
+export { default as DragZoom } from './interaction/DragZoom';
+export { default as Draw } from './interaction/Draw';
+export { default as Extent } from './interaction/Extent';
+export { default as Interaction } from './interaction/Interaction';
+export { default as KeyboardPan } from './interaction/KeyboardPan';
+export { default as KeyboardZoom } from './interaction/KeyboardZoom';
+export { default as Modify } from './interaction/Modify';
+export { default as MouseWheelZoom } from './interaction/MouseWheelZoom';
+export { default as PinchRotate } from './interaction/PinchRotate';
+export { default as PinchZoom } from './interaction/PinchZoom';
+export { default as Pointer } from './interaction/Pointer';
+export { default as Select } from './interaction/Select';
+export { default as Snap } from './interaction/Snap';
+export { default as Translate } from './interaction/Translate';
 
 
 /**
@@ -55,6 +56,19 @@ export {default as Translate} from './interaction/Translate';
  * milliseconds.
  */
 
+export interface DefaultsOptions {
+	altShiftDragRotate: boolean;
+	constrainResolution: boolean;
+	doubleClickZoom: boolean;
+	keyboard: boolean;
+	mouseWheelZoom: boolean;
+	shiftDragZoom: boolean;
+	dragPan: boolean;
+	pinchRotate: boolean;
+	pinchZoom: boolean;
+	zoomDelta: number;
+	zoomDuration: number;
+}
 
 /**
  * Set of interactions included in maps by default. Specific interactions can be
@@ -82,76 +96,76 @@ export {default as Translate} from './interaction/Translate';
  * constructor's `interactions` option.
  * @api
  */
-export function defaults(opt_options) {
+export function defaults(opt_options?: Partial<DefaultsOptions>) {
 
-  const options = opt_options ? opt_options : {};
+	const options = opt_options ? opt_options : {};
 
-  const interactions = new Collection();
+	const interactions = new Collection<Interaction>();
 
-  const kinetic = new Kinetic(-0.005, 0.05, 100);
+	const kinetic = new Kinetic(-0.005, 0.05, 100);
 
-  const altShiftDragRotate = options.altShiftDragRotate !== undefined ?
-    options.altShiftDragRotate : true;
-  if (altShiftDragRotate) {
-    interactions.push(new DragRotate());
-  }
+	const altShiftDragRotate = options.altShiftDragRotate !== undefined ?
+		options.altShiftDragRotate : true;
+	if (altShiftDragRotate) {
+		interactions.push(new DragRotate());
+	}
 
-  const doubleClickZoom = options.doubleClickZoom !== undefined ?
-    options.doubleClickZoom : true;
-  if (doubleClickZoom) {
-    interactions.push(new DoubleClickZoom({
-      delta: options.zoomDelta,
-      duration: options.zoomDuration
-    }));
-  }
+	const doubleClickZoom = options.doubleClickZoom !== undefined ?
+		options.doubleClickZoom : true;
+	if (doubleClickZoom) {
+		interactions.push(new DoubleClickZoom({
+			delta: options.zoomDelta,
+			duration: options.zoomDuration
+		}));
+	}
 
-  const dragPan = options.dragPan !== undefined ? options.dragPan : true;
-  if (dragPan) {
-    interactions.push(new DragPan({
-      kinetic: kinetic
-    }));
-  }
+	const dragPan = options.dragPan !== undefined ? options.dragPan : true;
+	if (dragPan) {
+		interactions.push(new DragPan({
+			kinetic
+		}));
+	}
 
-  const pinchRotate = options.pinchRotate !== undefined ? options.pinchRotate :
-    true;
-  if (pinchRotate) {
-    interactions.push(new PinchRotate());
-  }
+	const pinchRotate = options.pinchRotate !== undefined ? options.pinchRotate :
+		true;
+	if (pinchRotate) {
+		interactions.push(new PinchRotate());
+	}
 
-  const pinchZoom = options.pinchZoom !== undefined ? options.pinchZoom : true;
-  if (pinchZoom) {
-    interactions.push(new PinchZoom({
-      constrainResolution: options.constrainResolution,
-      duration: options.zoomDuration
-    }));
-  }
+	const pinchZoom = options.pinchZoom !== undefined ? options.pinchZoom : true;
+	if (pinchZoom) {
+		interactions.push(new PinchZoom({
+			constrainResolution: options.constrainResolution,
+			duration: options.zoomDuration
+		}));
+	}
 
-  const keyboard = options.keyboard !== undefined ? options.keyboard : true;
-  if (keyboard) {
-    interactions.push(new KeyboardPan());
-    interactions.push(new KeyboardZoom({
-      delta: options.zoomDelta,
-      duration: options.zoomDuration
-    }));
-  }
+	const keyboard = options.keyboard !== undefined ? options.keyboard : true;
+	if (keyboard) {
+		interactions.push(new KeyboardPan());
+		interactions.push(new KeyboardZoom({
+			delta: options.zoomDelta,
+			duration: options.zoomDuration
+		}));
+	}
 
-  const mouseWheelZoom = options.mouseWheelZoom !== undefined ?
-    options.mouseWheelZoom : true;
-  if (mouseWheelZoom) {
-    interactions.push(new MouseWheelZoom({
-      constrainResolution: options.constrainResolution,
-      duration: options.zoomDuration
-    }));
-  }
+	const mouseWheelZoom = options.mouseWheelZoom !== undefined ?
+		options.mouseWheelZoom : true;
+	if (mouseWheelZoom) {
+		interactions.push(new MouseWheelZoom({
+			constrainResolution: options.constrainResolution,
+			duration: options.zoomDuration
+		}));
+	}
 
-  const shiftDragZoom = options.shiftDragZoom !== undefined ?
-    options.shiftDragZoom : true;
-  if (shiftDragZoom) {
-    interactions.push(new DragZoom({
-      duration: options.zoomDuration
-    }));
-  }
+	const shiftDragZoom = options.shiftDragZoom !== undefined ?
+		options.shiftDragZoom : true;
+	if (shiftDragZoom) {
+		interactions.push(new DragZoom({
+			duration: options.zoomDuration
+		}));
+	}
 
-  return interactions;
+	return interactions;
 
 }
