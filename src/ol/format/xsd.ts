@@ -1,8 +1,8 @@
 /**
  * @module ol/format/xsd
  */
-import {getAllTextContent, DOCUMENT} from '../xml';
-import {padNumber} from '../string';
+import { getAllTextContent, DOCUMENT } from '../xml';
+import { padNumber } from '../string';
 
 
 /**
@@ -10,8 +10,8 @@ import {padNumber} from '../string';
  * @return {boolean|undefined} Boolean.
  */
 export function readBoolean(node) {
-  const s = getAllTextContent(node, false);
-  return readBooleanString(s);
+	const s = getAllTextContent(node, false);
+	return readBooleanString(s);
 }
 
 
@@ -20,12 +20,12 @@ export function readBoolean(node) {
  * @return {boolean|undefined} Boolean.
  */
 export function readBooleanString(string) {
-  const m = /^\s*(true|1)|(false|0)\s*$/.exec(string);
-  if (m) {
-    return m[1] !== undefined || false;
-  } else {
-    return undefined;
-  }
+	const m = /^\s*(true|1)|(false|0)\s*$/.exec(string);
+	if (m) {
+		return m[1] !== undefined || false;
+	} else {
+		return undefined;
+	}
 }
 
 
@@ -34,9 +34,9 @@ export function readBooleanString(string) {
  * @return {number|undefined} DateTime in seconds.
  */
 export function readDateTime(node) {
-  const s = getAllTextContent(node, false);
-  const dateTime = Date.parse(s);
-  return isNaN(dateTime) ? undefined : dateTime / 1000;
+	const s = getAllTextContent(node, false);
+	const dateTime = Date.parse(s);
+	return isNaN(dateTime) ? undefined : dateTime / 1000;
 }
 
 
@@ -45,8 +45,8 @@ export function readDateTime(node) {
  * @return {number|undefined} Decimal.
  */
 export function readDecimal(node) {
-  const s = getAllTextContent(node, false);
-  return readDecimalString(s);
+	const s = getAllTextContent(node, false);
+	return readDecimalString(s);
 }
 
 
@@ -55,13 +55,13 @@ export function readDecimal(node) {
  * @return {number|undefined} Decimal.
  */
 export function readDecimalString(string) {
-  // FIXME check spec
-  const m = /^\s*([+\-]?\d*\.?\d+(?:e[+\-]?\d+)?)\s*$/i.exec(string);
-  if (m) {
-    return parseFloat(m[1]);
-  } else {
-    return undefined;
-  }
+	// FIXME check spec
+	const m = /^\s*([+\-]?\d*\.?\d+(?:e[+\-]?\d+)?)\s*$/i.exec(string);
+	if (m) {
+		return parseFloat(m[1]);
+	} else {
+		return undefined;
+	}
 }
 
 
@@ -70,8 +70,8 @@ export function readDecimalString(string) {
  * @return {number|undefined} Non negative integer.
  */
 export function readNonNegativeInteger(node) {
-  const s = getAllTextContent(node, false);
-  return readNonNegativeIntegerString(s);
+	const s = getAllTextContent(node, false);
+	return readNonNegativeIntegerString(s);
 }
 
 
@@ -80,12 +80,12 @@ export function readNonNegativeInteger(node) {
  * @return {number|undefined} Non negative integer.
  */
 export function readNonNegativeIntegerString(string) {
-  const m = /^\s*(\d+)\s*$/.exec(string);
-  if (m) {
-    return parseInt(m[1], 10);
-  } else {
-    return undefined;
-  }
+	const m = /^\s*(\d+)\s*$/.exec(string);
+	if (m) {
+		return parseInt(m[1], 10);
+	} else {
+		return undefined;
+	}
 }
 
 
@@ -94,7 +94,7 @@ export function readNonNegativeIntegerString(string) {
  * @return {string|undefined} String.
  */
 export function readString(node) {
-  return getAllTextContent(node, false).trim();
+	return getAllTextContent(node, false).trim();
 }
 
 
@@ -103,7 +103,7 @@ export function readString(node) {
  * @param {boolean} bool Boolean.
  */
 export function writeBooleanTextNode(node, bool) {
-  writeStringTextNode(node, (bool) ? '1' : '0');
+	writeStringTextNode(node, (bool) ? '1' : '0');
 }
 
 
@@ -112,7 +112,7 @@ export function writeBooleanTextNode(node, bool) {
  * @param {string} string String.
  */
 export function writeCDATASection(node, string) {
-  node.appendChild(DOCUMENT.createCDATASection(string));
+	node.appendChild(DOCUMENT.createCDATASection(string));
 }
 
 
@@ -121,14 +121,14 @@ export function writeCDATASection(node, string) {
  * @param {number} dateTime DateTime in seconds.
  */
 export function writeDateTimeTextNode(node, dateTime) {
-  const date = new Date(dateTime * 1000);
-  const string = date.getUTCFullYear() + '-' +
-      padNumber(date.getUTCMonth() + 1, 2) + '-' +
-      padNumber(date.getUTCDate(), 2) + 'T' +
-      padNumber(date.getUTCHours(), 2) + ':' +
-      padNumber(date.getUTCMinutes(), 2) + ':' +
-      padNumber(date.getUTCSeconds(), 2) + 'Z';
-  node.appendChild(DOCUMENT.createTextNode(string));
+	const date = new Date(dateTime * 1000);
+	const string = date.getUTCFullYear() + '-' +
+		padNumber(date.getUTCMonth() + 1, 2) + '-' +
+		padNumber(date.getUTCDate(), 2) + 'T' +
+		padNumber(date.getUTCHours(), 2) + ':' +
+		padNumber(date.getUTCMinutes(), 2) + ':' +
+		padNumber(date.getUTCSeconds(), 2) + 'Z';
+	node.appendChild(DOCUMENT.createTextNode(string));
 }
 
 
@@ -137,8 +137,8 @@ export function writeDateTimeTextNode(node, dateTime) {
  * @param {number} decimal Decimal.
  */
 export function writeDecimalTextNode(node, decimal) {
-  const string = decimal.toPrecision();
-  node.appendChild(DOCUMENT.createTextNode(string));
+	const string = decimal.toPrecision();
+	node.appendChild(DOCUMENT.createTextNode(string));
 }
 
 
@@ -147,15 +147,15 @@ export function writeDecimalTextNode(node, decimal) {
  * @param {number} nonNegativeInteger Non negative integer.
  */
 export function writeNonNegativeIntegerTextNode(node, nonNegativeInteger) {
-  const string = nonNegativeInteger.toString();
-  node.appendChild(DOCUMENT.createTextNode(string));
+	const string = nonNegativeInteger.toString();
+	node.appendChild(DOCUMENT.createTextNode(string));
 }
 
 
 /**
  * @param {Node} node Node to append a TextNode with the string to.
- * @param {string} string String.
+ * @param {string} str String.
  */
-export function writeStringTextNode(node, string) {
-  node.appendChild(DOCUMENT.createTextNode(string));
+export function writeStringTextNode(node: Node, str: string) {
+	node.appendChild(DOCUMENT.createTextNode(str));
 }

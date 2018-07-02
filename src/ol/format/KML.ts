@@ -25,7 +25,7 @@ import Icon from '../style/Icon';
 import IconAnchorUnits from '../style/IconAnchorUnits';
 import IconOrigin from '../style/IconOrigin';
 import Stroke from '../style/Stroke';
-import Style from '../style/Style';
+import Style, { StyleFunction } from '../style/Style';
 import Text from '../style/Text';
 import {
 	createElementNS, getAllTextContent, isDocument, isNode, makeArrayExtender,
@@ -36,6 +36,7 @@ import {
 } from '../xml';
 import { Size } from '../size';
 import ImageStyle from '../style/Image';
+import Geometry from '../geom/Geometry';
 
 /**
  * @typedef {Object} Vec2
@@ -235,17 +236,17 @@ function createStyleDefaults() {
 	});
 
 	DEFAULT_TEXT_STYLE = new Text({
-		font: 'bold 16px Helvetica',
 		fill: DEFAULT_FILL_STYLE,
-		stroke: DEFAULT_TEXT_STROKE_STYLE,
-		scale: 0.8
+		font: 'bold 16px Helvetica',
+		scale: 0.8,
+		stroke: DEFAULT_TEXT_STROKE_STYLE
 	});
 
 	DEFAULT_STYLE = new Style({
 		fill: DEFAULT_FILL_STYLE,
 		image: DEFAULT_IMAGE_STYLE,
-		text: DEFAULT_TEXT_STYLE,
 		stroke: DEFAULT_STROKE_STYLE,
+		text: DEFAULT_TEXT_STYLE,
 		zIndex: 0
 	});
 
@@ -269,6 +270,47 @@ export interface Options {
 	writeStyles: boolean;
 }
 
+
+/**
+ * @const
+ * @type {Array.<string>}
+ */
+const GX_NAMESPACE_URIS = [
+	'http://www.google.com/kml/ext/2.2'
+];
+
+
+/**
+ * @const
+ * @type {Array.<null|string>}
+ */
+const NAMESPACE_URIS = [
+	null,
+	'http://earth.google.com/kml/2.0',
+	'http://earth.google.com/kml/2.1',
+	'http://earth.google.com/kml/2.2',
+	'http://www.opengis.net/kml/2.2'
+] as string[];
+
+
+/**
+ * @const
+ * @type {string}
+ */
+const SCHEMA_LOCATION = 'http://www.opengis.net/kml/2.2 ' +
+	'https://developers.google.com/kml/schema/kml22gx.xsd';
+
+
+/**
+ * @type {Object.<string, module:ol/style/IconAnchorUnits>}
+ */
+const ICON_ANCHOR_UNITS_MAP = {
+	fraction: IconAnchorUnits.FRACTION,
+	insetPixels: IconAnchorUnits.PIXELS,
+	pixels: IconAnchorUnits.PIXELS
+};
+
+
 /**
  * @classdesc
  * Feature format for reading and writing data in the KML format.
@@ -282,6 +324,11 @@ export interface Options {
  * @api
  */
 export default class KML extends XMLFeature {
+	private defaultStyle_: Style[];
+	private extractStyles_: boolean;
+	private writeStyles_: boolean;
+	private sharedStyles_: { [s: string]: Style[] | string; };
+	private showPointNames_: boolean;
 	constructor(opt_options?: Partial<Options>) {
 		const options = opt_options ? opt_options : {};
 
@@ -351,7 +398,7 @@ export default class KML extends XMLFeature {
 	/**
 	 * @inheritDoc
 	 */
-	public readFeatureFromNode(node: Node, opt_options?: ReadOptions) {
+	public readFeatureFromNode(node: Element, opt_options?: ReadOptions) {
 		if (!includes(NAMESPACE_URIS, node.namespaceURI)) {
 			return null;
 		}
@@ -384,7 +431,7 @@ export default class KML extends XMLFeature {
 	/**
 	 * @inheritDoc
 	 */
-	public readFeaturesFromNode(node: Node, opt_options?: Partial<ReadOptions>): Feature[] {
+	public readFeaturesFromNode(node: Element, opt_options?: Partial<ReadOptions>): Feature[] {
 		if (!includes(NAMESPACE_URIS, node.namespaceURI)) {
 			return [];
 		}
@@ -460,7 +507,7 @@ export default class KML extends XMLFeature {
 	 * @param {Node} node Node.
 	 * @return {string|undefined} Name.
 	 */
-	public readNameFromNode(node: Node): string | undefined {
+	public readNameFromNode(node: Element): string | undefined {
 		for (let n = (node as Element).firstElementChild; n; n = n.nextElementSibling) {
 			if (includes(NAMESPACE_URIS, n.namespaceURI) &&
 				n.localName == 'name') {
@@ -526,7 +573,7 @@ export default class KML extends XMLFeature {
 	 * @param {Node} node Node.
 	 * @return {Array.<Object>} Network links.
 	 */
-	public readNetworkLinksFromNode(node: Node) {
+	public readNetworkLinksFromNode(node: Element) {
 		const networkLinks = [];
 		for (let n = (node as Element).firstElementChild; n; n = n.nextElementSibling) {
 			if (includes(NAMESPACE_URIS, n.namespaceURI) &&
@@ -592,7 +639,7 @@ export default class KML extends XMLFeature {
 	 * @return {Array.<Object>} Region.
 	 * @api
 	 */
-	public readRegionFromNode(node: Node) {
+	public readRegionFromNode(node: Element) {
 		const regions: any[] = [];
 		for (let n = (node as Element).firstElementChild; n; n = n.nextElementSibling) {
 			if (includes(NAMESPACE_URIS, n.namespaceURI) &&
@@ -620,20 +667,28 @@ export default class KML extends XMLFeature {
 	 * @private
 	 * @return {Array.<module:ol/Feature>|undefined} Features.
 	 */
-	private readDocumentOrFolder_(node: Node, objectStack: any[]): Feature[] | undefined {
+	private readDocumentOrFolder_(node: Element, objectStack: any[]): Feature[] | undefined {
 		// FIXME use scope somehow
 		const parsersNS = makeStructureNS(
 			NAMESPACE_URIS as string[], {
 				Document: makeArrayExtender((n, o) => {
 					return this.readDocumentOrFolder_(n, o);
 				}),
-				'Folder': makeArrayExtender(this.readDocumentOrFolder_, this),
-				'Placemark': makeArrayPusher(this.readPlacemark_, this),
-				'Style': this.readSharedStyle_.bind(this),
-				'StyleMap': this.readSharedStyleMap_.bind(this)
+				Folder: makeArrayExtender((n, o) => {
+					return this.readDocumentOrFolder_(n, o);
+				}),
+				Placemark: makeArrayPusher((n, o) => {
+					return this.readPlacemark_(n, o);
+				}),
+				Style: (n: Element, o: any[]) => {
+					this.readSharedStyle_(n, o);
+				},
+				StyleMap: (n: Element, o: any[]) => {
+					this.readSharedStyleMap_(n, o);
+				}
 			});
 		/** @type {Array.<module:ol/Feature>} */
-		const features = pushParseAndPop([], parsersNS, node, objectStack, this);
+		const features = pushParseAndPop<Feature[]>([], parsersNS as any, node, objectStack);
 		if (features) {
 			return features;
 		} else {
@@ -648,9 +703,12 @@ export default class KML extends XMLFeature {
 	 * @private
 	 * @return {module:ol/Feature|undefined} Feature.
 	 */
-	private readPlacemark_(node: Node, objectStack: any[]) {
-		const object = pushParseAndPop({ 'geometry': null },
-			PLACEMARK_PARSERS, node, objectStack);
+	private readPlacemark_(node: Element, objectStack: any[]) {
+		const object = pushParseAndPop<{
+			geometry: Geometry;
+			Style: Style[];
+			styleUrl: string;
+		}>({ geometry: null! } as any, PLACEMARK_PARSERS, node, objectStack);
 		if (!object) {
 			return undefined;
 		}
@@ -659,24 +717,24 @@ export default class KML extends XMLFeature {
 		if (id !== null) {
 			feature.setId(id);
 		}
-		const options = /** @type {module:ol/format/Feature~ReadOptions} */ (objectStack[0]);
+		const options = /** @type {module:ol/format/Feature~ReadOptions} */ (objectStack[0] as ReadOptions);
 
-		const geometry = object['geometry'];
+		const geometry = object.geometry;
 		if (geometry) {
 			transformWithOptions(geometry, false, options);
 		}
 		feature.setGeometry(geometry);
-		delete object['geometry'];
+		delete object.geometry;
 
 		if (this.extractStyles_) {
-			const style = object['Style'];
-			const styleUrl = object['styleUrl'];
+			const style = object.Style;
+			const styleUrl = object.styleUrl;
 			const styleFunction = createFeatureStyleFunction(
 				style, styleUrl, this.defaultStyle_, this.sharedStyles_,
 				this.showPointNames_);
 			feature.setStyle(styleFunction);
 		}
-		delete object['Style'];
+		delete object.Style;
 		// we do not remove the styleUrl property from the object, so it
 		// gets stored on feature when setProperties is called
 
@@ -691,7 +749,7 @@ export default class KML extends XMLFeature {
 	 * @param {Array.<*>} objectStack Object stack.
 	 * @private
 	 */
-	private readSharedStyle_(node: Node, objectStack: any[]) {
+	private readSharedStyle_(node: Element, objectStack: any[]) {
 		const id = node.getAttribute('id');
 		if (id !== null) {
 			const style = readStyle(node, objectStack);
@@ -718,7 +776,7 @@ export default class KML extends XMLFeature {
 	 * @param {Array.<*>} objectStack Object stack.
 	 * @private
 	 */
-	private readSharedStyleMap_(node: Node, objectStack: any[]) {
+	private readSharedStyleMap_(node: Element, objectStack: any[]) {
 		const id = node.getAttribute('id');
 		if (id === null) {
 			return;
@@ -745,15 +803,15 @@ export default class KML extends XMLFeature {
  * @param {Node} node Node to append a TextNode with the color to.
  * @param {module:ol/color~Color|string} color Color.
  */
-function writeColorTextNode(node, color) {
+function writeColorTextNode(node: Element, color: Color | string) {
 	const rgba = asArray(color);
 	const opacity = (rgba.length == 4) ? rgba[3] : 1;
 	const abgr = [opacity * 255, rgba[2], rgba[1], rgba[0]];
-	for (let i = 0; i < 4; ++i) {
-		const hex = parseInt(abgr[i], 10).toString(16);
-		abgr[i] = (hex.length == 1) ? '0' + hex : hex;
-	}
-	writeStringTextNode(node, abgr.join(''));
+	const abgrhex = abgr.map((c) => {
+		const hex = c.toString(16);
+		return (hex.length == 1) ? '0' + hex : hex;
+	}).join('');
+	writeStringTextNode(node, abgrhex);
 }
 
 
@@ -762,18 +820,18 @@ function writeColorTextNode(node, color) {
  * @param {Array.<number>} coordinates Coordinates.
  * @param {Array.<*>} objectStack Object stack.
  */
-function writeCoordinatesTextNode(node, coordinates, objectStack) {
+function writeCoordinatesTextNode(node: Element, coordinates: number[], objectStack: any[]) {
 	const context = objectStack[objectStack.length - 1];
 
-	const layout = context['layout'];
-	const stride = context['stride'];
+	const layout = context.layout as string;
+	const stride = context.stride as number;
 
-	let dimension;
-	if (layout == GeometryLayout.XY ||
-		layout == GeometryLayout.XYM) {
+	let dimension = 0;
+	if (layout === GeometryLayout.XY ||
+		layout === GeometryLayout.XYM) {
 		dimension = 2;
-	} else if (layout == GeometryLayout.XYZ ||
-		layout == GeometryLayout.XYZM) {
+	} else if (layout === GeometryLayout.XYZ ||
+		layout === GeometryLayout.XYZM) {
 		dimension = 3;
 	} else {
 		assert(false, 34); // Invalid geometry layout
@@ -816,7 +874,7 @@ const EXTENDEDDATA_NODE_SERIALIZERS = makeStructureNS(
  */
 function writeDataNode(node, pair, objectStack) {
 	node.setAttribute('name', pair.name);
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const value = pair.value;
 
 	if (typeof value == 'object') {
@@ -884,7 +942,7 @@ const DOCUMENT_NODE_FACTORY = function (value, objectStack, opt_nodeName) {
  * @this {module:ol/format/KML}
  */
 function writeDocument(node, features, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	pushSerializeAndPop(context, DOCUMENT_SERIALIZERS,
 		DOCUMENT_NODE_FACTORY, features, objectStack, undefined,
 		this);
@@ -905,7 +963,7 @@ const DATA_NODE_FACTORY = makeSimpleNodeFactory('Data');
  * @param {Array.<*>} objectStack Object stack.
  */
 function writeExtendedData(node, namesAndValues, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const names = namesAndValues.names;
 	const values = namesAndValues.values;
 	const length = names.length;
@@ -965,7 +1023,7 @@ const GX_NODE_FACTORY = function (value, objectStack, opt_nodeName) {
  * @param {Array.<*>} objectStack Object stack.
  */
 function writeIcon(node, icon, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const parentNode = objectStack[objectStack.length - 1].node;
 	let orderedKeys = ICON_SEQUENCE[parentNode.namespaceURI];
 	let values = makeSequence(icon, orderedKeys);
@@ -1009,7 +1067,7 @@ const ICON_STYLE_SERIALIZERS = makeStructureNS(
  * @param {Array.<*>} objectStack Object stack.
  */
 function writeIconStyle(node, style, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const properties = {};
 	const src = style.getSrc();
 	const size = style.getSize();
@@ -1087,7 +1145,7 @@ const LABEL_STYLE_SERIALIZERS = makeStructureNS(
  * @param {Array.<*>} objectStack Object stack.
  */
 function writeLabelStyle(node, style, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const properties = {};
 	const fill = style.getFill();
 	if (fill) {
@@ -1133,7 +1191,7 @@ const LINE_STYLE_SERIALIZERS = makeStructureNS(
  * @param {Array.<*>} objectStack Object stack.
  */
 function writeLineStyle(node, style, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const properties = {
 		'color': style.getColor(),
 		'width': style.getWidth()
@@ -1233,7 +1291,7 @@ const MULTI_GEOMETRY_SERIALIZERS = makeStructureNS(
  */
 function writeMultiGeometry(node, geometry, objectStack) {
 	/** @type {module:ol/xml~NodeStackItem} */
-	const context = { node: node };
+	const context = { node: Element };
 	const type = geometry.getType();
 	/** @type {Array.<module:ol/geom/Geometry>} */
 	let geometries;
@@ -1279,7 +1337,7 @@ const BOUNDARY_IS_SERIALIZERS = makeStructureNS(
  * @param {Array.<*>} objectStack Object stack.
  */
 function writeBoundaryIs(node, linearRing, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	pushSerializeAndPop(context,
 		BOUNDARY_IS_SERIALIZERS,
 		LINEAR_RING_NODE_FACTORY, [linearRing], objectStack);
@@ -1337,7 +1395,7 @@ const EXTENDEDDATA_NODE_FACTORY = makeSimpleNodeFactory('ExtendedData');
  * @this {module:ol/format/KML}
  */
 function writePlacemark(node, feature, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 
 	// set id
 	if (feature.getId()) {
@@ -1427,7 +1485,7 @@ const PRIMITIVE_GEOMETRY_SERIALIZERS = makeStructureNS(
  */
 function writePrimitiveGeometry(node, geometry, objectStack) {
 	const flatCoordinates = geometry.getFlatCoordinates();
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	context['layout'] = geometry.getLayout();
 	context['stride'] = geometry.getStride();
 
@@ -1480,7 +1538,7 @@ const OUTER_BOUNDARY_NODE_FACTORY = makeSimpleNodeFactory('outerBoundaryIs');
 function writePolygon(node, polygon, objectStack) {
 	const linearRings = polygon.getLinearRings();
 	const outerRing = linearRings.shift();
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	// inner rings
 	pushSerializeAndPop(context,
 		POLYGON_SERIALIZERS,
@@ -1518,7 +1576,7 @@ const COLOR_NODE_FACTORY = makeSimpleNodeFactory('color');
  * @param {Array.<*>} objectStack Object stack.
  */
 function writePolyStyle(node, style, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	pushSerializeAndPop(context, POLY_STYLE_SERIALIZERS,
 		COLOR_NODE_FACTORY, [style.getColor()], objectStack);
 }
@@ -1564,7 +1622,7 @@ const STYLE_SERIALIZERS = makeStructureNS(
  * @param {Array.<*>} objectStack Object stack.
  */
 function writeStyle(node, style, objectStack) {
-	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: node };
+	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const properties = {};
 	const fillStyle = style.getFill();
 	const strokeStyle = style.getStroke();
@@ -1672,45 +1730,6 @@ KML.prototype.writeFeaturesNode = function (features, opt_options) {
 
 
 /**
- * @const
- * @type {Array.<string>}
- */
-const GX_NAMESPACE_URIS = [
-	'http://www.google.com/kml/ext/2.2'
-];
-
-
-/**
- * @const
- * @type {Array.<null|string>}
- */
-const NAMESPACE_URIS = [
-	null,
-	'http://earth.google.com/kml/2.0',
-	'http://earth.google.com/kml/2.1',
-	'http://earth.google.com/kml/2.2',
-	'http://www.opengis.net/kml/2.2'
-];
-
-
-/**
- * @const
- * @type {string}
- */
-const SCHEMA_LOCATION = 'http://www.opengis.net/kml/2.2 ' +
-	'https://developers.google.com/kml/schema/kml22gx.xsd';
-
-
-/**
- * @type {Object.<string, module:ol/style/IconAnchorUnits>}
- */
-const ICON_ANCHOR_UNITS_MAP = {
-	'fraction': IconAnchorUnits.FRACTION,
-	'pixels': IconAnchorUnits.PIXELS,
-	'insetPixels': IconAnchorUnits.PIXELS
-};
-
-/**
  * @param {module:ol/style/Style|undefined} foundStyle Style.
  * @param {string} name Name.
  * @return {module:ol/style/Style} style Style.
@@ -1765,7 +1784,7 @@ function createNameStyleFunction(foundStyle, name) {
  * @param {boolean|undefined} showPointNames true to show names for point placemarks.
  * @return {module:ol/style/Style~StyleFunction} Feature style function.
  */
-function createFeatureStyleFunction(style, styleUrl, defaultStyle, sharedStyles, showPointNames) {
+function createFeatureStyleFunction(style: Style[] | undefined | null, styleUrl: string, defaultStyle: Style[], sharedStyles: { [s: string]: Style[] | string; }, showPointNames: boolean | undefined) {
 
 	return (
 		/**
@@ -1787,7 +1806,7 @@ function createFeatureStyleFunction(style, styleUrl, defaultStyle, sharedStyles,
 
 			if (drawName) {
 				name = /** @type {string} */ (feature.get('name'));
-				drawName = drawName && name;
+				drawName = !!(drawName && name);
 			}
 
 			if (style) {
@@ -1810,7 +1829,7 @@ function createFeatureStyleFunction(style, styleUrl, defaultStyle, sharedStyles,
 				return defaultStyle.concat(nameStyle);
 			}
 			return defaultStyle;
-		}
+		} as StyleFunction
 	);
 }
 

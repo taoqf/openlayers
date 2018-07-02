@@ -165,7 +165,7 @@ export function makeArrayExtender(valueReader: (node: Node, objectStack: Node[][
  * @return {module:ol/xml~Parser} Parser.
  * @template T
  */
-export function makeArrayPusher(valueReader: (node: Node, objectStack: Node[][]) => Node) {
+export function makeArrayPusher(valueReader: (node: Node, objectStack: any[]) => any) {
 	/**
 	 * @param {Node} node Node.
 	 * @param {Array.<*>} objectStack Object stack.
@@ -427,7 +427,7 @@ export function parseNode(parsersNS: { [key: string]: any; }, node: Node, object
  * @return {T} Object.
  * @template T
  */
-export function pushParseAndPop<T>(object: T, parsersNS: { [key: string]: { [key: string]: void } }, node: Node, objectStack: any[]) {
+export function pushParseAndPop<T>(object: T, parsersNS: { [key: string]: { [key: string]: void } }, node: Node, objectStack: any[]): T {
 	objectStack.push(object);
 	parseNode(parsersNS, node, objectStack);
 	return /** @type {T} */ (objectStack.pop());
