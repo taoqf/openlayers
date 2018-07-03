@@ -119,7 +119,7 @@ export default abstract class IntermediateCanvasRenderer extends CanvasLayerRend
 	/**
 	 * @inheritDoc
 	 */
-	public forEachLayerAtCoordinate<S, T, U>(coordinate: Coordinate, frameState: FrameState, callback: (this: S, layer: Layer, n: Uint8ClampedArray | Uint8Array) => T, thisArg: S) {
+	public forEachLayerAtCoordinate<S, T>(coordinate: Coordinate, frameState: FrameState, callback: (this: S, layer: Layer, n: Uint8ClampedArray | Uint8Array) => T, thisArg: S) {
 		if (!this.getImage()) {
 			return undefined;
 		}
@@ -127,7 +127,7 @@ export default abstract class IntermediateCanvasRenderer extends CanvasLayerRend
 		if (this.getLayer().getSource().forEachFeatureAtCoordinate !== UNDEFINED) {
 			// for ImageCanvas sources use the original hit-detection logic,
 			// so that for example also transparent polygons are detected
-			return super.forEachLayerAtCoordinate<S, T, U>(coordinate, frameState, callback, thisArg);
+			return super.forEachLayerAtCoordinate<S, T>(coordinate, frameState, callback, thisArg);
 		} else {
 			const pixel = applyTransform(this.coordinateToCanvasPixelTransform, coordinate.slice() as Coordinate);
 			scaleCoordinate(pixel, frameState.viewState.resolution / this.renderedResolution!);
@@ -137,7 +137,7 @@ export default abstract class IntermediateCanvasRenderer extends CanvasLayerRend
 			}
 
 			this.hitCanvasContext_.clearRect(0, 0, 1, 1);
-			this.hitCanvasContext_.drawImage(this.getImage(), pixel[0], pixel[1], 1, 1, 0, 0, 1, 1);
+			this.hitCanvasContext_.drawImage(this.getImage() as HTMLCanvasElement, pixel[0], pixel[1], 1, 1, 0, 0, 1, 1);
 
 			const imageData = this.hitCanvasContext_.getImageData(0, 0, 1, 1).data;
 			if (imageData[3] > 0) {

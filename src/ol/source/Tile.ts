@@ -55,6 +55,9 @@ export interface Options {
  * @api
  */
 export default abstract class TileSource extends Source {
+	getOverlaps(): any {
+		throw new Error('Method not implemented.');
+	}
 	protected tileGrid: TileGrid | null;
 	protected tileCache: TileCache;
 	protected tmpSize: Size;

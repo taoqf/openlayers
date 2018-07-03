@@ -39,6 +39,7 @@ export interface Options {
  * @api
  */
 export default class ZoomToExtent extends Control {
+	protected extent: Extent | null;
 	constructor(opt_options?: Partial<Options>) {
 		const options = opt_options ? opt_options : {};
 
@@ -46,7 +47,7 @@ export default class ZoomToExtent extends Control {
 		 * @type {module:ol/extent~Extent}
 		 * @protected
 		 */
-		this.extent = options.extent ? options.extent : null;
+		const extent = options.extent ? options.extent : null;
 
 		const className = options.className !== undefined ? options.className : 'ol-zoom-extent';
 
@@ -59,7 +60,9 @@ export default class ZoomToExtent extends Control {
 			typeof label === 'string' ? document.createTextNode(label) : label
 		);
 
-		listen(button, EventType.CLICK, this.handleClick_, this);
+		listen(button, EventType.CLICK, (e: Event) => {
+			return this.handleClick_(e);
+		});
 
 		const cssClasses = className + ' ' + CLASS_UNSELECTABLE + ' ' + CLASS_CONTROL;
 		const element = document.createElement('div');
@@ -70,6 +73,7 @@ export default class ZoomToExtent extends Control {
 			element,
 			target: options.target
 		});
+		this.extent = extent;
 	}
 
 	/**
@@ -78,8 +82,8 @@ export default class ZoomToExtent extends Control {
 	protected handleZoomToExtent() {
 		const map = this.getMap();
 		const view = map.getView();
-		const extent = !this.extent ? view.getProjection().getExtent() : this.extent;
-		view.fit(extent);
+		const extent = !this.extent ? view.getProjection()!.getExtent() : this.extent;
+		view.fit(extent!);
 	}
 
 	/**

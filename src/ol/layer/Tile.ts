@@ -60,6 +60,21 @@ export interface Options {
  * @api
  */
 export default class TileLayer extends Layer {
+	getRenderMode(): any {
+		throw new Error('Method not implemented.');
+	}
+	getDeclutter(): any {
+		throw new Error('Method not implemented.');
+	}
+	getRenderOrder(): any {
+		throw new Error('Method not implemented.');
+	}
+	getRenderBuffer(): any {
+		throw new Error('Method not implemented.');
+	}
+	getStyleFunction(): any {
+		throw new Error('Method not implemented.');
+	}
 	constructor(opt_options?: Partial<Options>) {
 		const options = opt_options ? opt_options : {};
 

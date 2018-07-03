@@ -70,7 +70,7 @@ export default class Zoom extends Control {
 			typeof zoomInLabel === 'string' ? document.createTextNode(zoomInLabel) : zoomInLabel
 		);
 
-		listen(inElement, EventType.CLICK, (e) => {
+		listen(inElement, EventType.CLICK, (e: Event) => {
 			this.handleClick_(delta, e);
 		});
 
@@ -82,7 +82,7 @@ export default class Zoom extends Control {
 			typeof zoomOutLabel === 'string' ? document.createTextNode(zoomOutLabel) : zoomOutLabel
 		);
 
-		listen(outElement, EventType.CLICK, (e) => {
+		listen(outElement, EventType.CLICK, (e: Event) => {
 			this.handleClick_(-delta, e);
 		});
 

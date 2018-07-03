@@ -59,12 +59,19 @@ export interface Options {
  * @param {module:ol/Tile~Options=} opt_options Tile options.
  */
 export default abstract class Tile extends EventTarget {
+	extent(arg0: any, arg1: any, arg2: any): any {
+		throw new Error('Method not implemented.');
+	}
+	getTile(arg0: any): any {
+		throw new Error('Method not implemented.');
+	}
 	public tileCoord: TileCoord;
 	public state: TileState;
 	public interimTile: Tile | null;
 	public key: string;
 	private transition_: number;
 	private transitionStarts_: { [key: number]: number };
+	tileKeys: any;
 	constructor(tileCoord: TileCoord, state: TileState, opt_options?: Partial<Options>) {
 		super();
 

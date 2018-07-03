@@ -5,11 +5,11 @@ import { assert } from '../asserts';
 import Control from '../control/Control';
 import { CLASS_UNSELECTABLE } from '../css';
 import { listen } from '../events';
-import { inherits } from '../index';
+import MapEvent from '../MapEvent';
 import { getChangeEventType } from '../Object';
 import { getPointResolution, METERS_PER_UNIT } from '../proj';
 import ProjUnits from '../proj/Units';
-import MapEvent from '../MapEvent';
+import { State } from '../View';
 
 
 /**
@@ -22,13 +22,13 @@ const UNITS_PROP = 'units';
  * `'nautical'`, `'metric'`, `'us'`.
  * @enum {string}
  */
-export const Units = {
-	DEGREES: 'degrees',
-	IMPERIAL: 'imperial',
-	NAUTICAL: 'nautical',
-	METRIC: 'metric',
-	US: 'us'
-};
+export enum Units {
+	DEGREES = 'degrees',
+	IMPERIAL = 'imperial',
+	NAUTICAL = 'nautical',
+	METRIC = 'metric',
+	US = 'us'
+}
 
 
 /**
@@ -49,6 +49,13 @@ const LEADING_DIGITS = [1, 2, 5];
  * @property {module:ol/control/ScaleLine~Units|string} [units='metric'] Units.
  */
 
+export interface Options {
+	className: string;
+	minWidth: number;
+	target: Element | string;
+	units: Units | string;
+	render(e: MapEvent): void;
+}
 
 /**
  * @classdesc
@@ -66,7 +73,14 @@ const LEADING_DIGITS = [1, 2, 5];
  * @api
  */
 export default class ScaleLine extends Control {
-	constructor(opt_options) {
+	private innerElement_: HTMLDivElement;
+	private element_: HTMLDivElement;
+	private viewState_: State;
+	private minWidth_: number;
+	private renderedVisible_: boolean;
+	private renderedWidth_: number | undefined;
+	private renderedHTML_: string;
+	constructor(opt_options?: Partial<Options>) {
 
 		const options = opt_options ? opt_options : {};
 
@@ -76,22 +90,37 @@ export default class ScaleLine extends Control {
 		 * @private
 		 * @type {Element}
 		 */
-		this.innerElement_ = document.createElement('DIV');
-		this.innerElement_.className = className + '-inner';
+		const innerElement_ = document.createElement('div');
+		innerElement_.className = className + '-inner';
 
 		/**
 		 * @private
 		 * @type {Element}
 		 */
-		this.element_ = document.createElement('DIV');
-		this.element_.className = className + ' ' + CLASS_UNSELECTABLE;
-		this.element_.appendChild(this.innerElement_);
+		const element_ = document.createElement('div');
+		element_.className = className + ' ' + CLASS_UNSELECTABLE;
+		element_.appendChild(innerElement_);
+
+		super({
+			element: element_,
+			render: options.render || ((mapEvent: MapEvent) => {
+				const frameState = mapEvent.frameState;
+				if (!frameState) {
+					this.viewState_ = null!;
+				} else {
+					this.viewState_ = frameState.viewState;
+				}
+				this.updateElement_();
+			}),
+			target: options.target
+		});
+		this.element_ = element_;
 
 		/**
 		 * @private
 		 * @type {?module:ol/View~State}
 		 */
-		this.viewState_ = null;
+		this.viewState_ = null!;
 
 		/**
 		 * @private
@@ -111,17 +140,12 @@ export default class ScaleLine extends Control {
 		 */
 		this.renderedWidth_ = undefined;
 
+		this.innerElement_ = innerElement_;
 		/**
 		 * @private
 		 * @type {string}
 		 */
 		this.renderedHTML_ = '';
-
-		super({
-			element: this.element_,
-			render: options.render || render,
-			target: options.target
-		});
 
 		listen(
 			this, getChangeEventType(UNITS_PROP),
@@ -145,22 +169,13 @@ export default class ScaleLine extends Control {
 		);
 	}
 
-
-	/**
-	 * @private
-	 */
-	private handleUnitsChanged_() {
-		this.updateElement_();
-	}
-
-
 	/**
 	 * Set the units to use in the scale line.
 	 * @param {module:ol/control/ScaleLine~Units} units The units to use in the scale line.
 	 * @observable
 	 * @api
 	 */
-	public setUnits(units) {
+	public setUnits(units: Units | string) {
 		this.set(UNITS_PROP, units);
 	}
 
@@ -182,21 +197,21 @@ export default class ScaleLine extends Control {
 		const center = viewState.center;
 		const projection = viewState.projection;
 		const units = this.getUnits();
-		const pointResolutionUnits = units == Units.DEGREES ?
+		const pointResolutionUnits = units === Units.DEGREES ?
 			ProjUnits.DEGREES :
 			ProjUnits.METERS;
 		let pointResolution =
 			getPointResolution(projection, viewState.resolution, center, pointResolutionUnits);
-		if (projection.getUnits() != ProjUnits.DEGREES && projection.getMetersPerUnit()
-			&& pointResolutionUnits == ProjUnits.METERS) {
+		if (projection.getUnits() !== ProjUnits.DEGREES && projection.getMetersPerUnit()
+			&& pointResolutionUnits === ProjUnits.METERS) {
 			pointResolution *= projection.getMetersPerUnit();
 		}
 
 		let nominalCount = this.minWidth_ * pointResolution;
 		let suffix = '';
-		if (units == Units.DEGREES) {
+		if (units === Units.DEGREES) {
 			const metersPerDegree = METERS_PER_UNIT[ProjUnits.DEGREES];
-			if (projection.getUnits() == ProjUnits.DEGREES) {
+			if (projection.getUnits() === ProjUnits.DEGREES) {
 				nominalCount *= metersPerDegree;
 			} else {
 				pointResolution /= metersPerDegree;
@@ -210,7 +225,7 @@ export default class ScaleLine extends Control {
 			} else {
 				suffix = '\u00b0'; // degrees
 			}
-		} else if (units == Units.IMPERIAL) {
+		} else if (units === Units.IMPERIAL) {
 			if (nominalCount < 0.9144) {
 				suffix = 'in';
 				pointResolution /= 0.0254;
@@ -221,10 +236,10 @@ export default class ScaleLine extends Control {
 				suffix = 'mi';
 				pointResolution /= 1609.344;
 			}
-		} else if (units == Units.NAUTICAL) {
+		} else if (units === Units.NAUTICAL) {
 			pointResolution /= 1852;
 			suffix = 'nm';
-		} else if (units == Units.METRIC) {
+		} else if (units === Units.METRIC) {
 			if (nominalCount < 0.001) {
 				suffix = 'μm';
 				pointResolution *= 1000000;
@@ -237,7 +252,7 @@ export default class ScaleLine extends Control {
 				suffix = 'km';
 				pointResolution /= 1000;
 			}
-		} else if (units == Units.US) {
+		} else if (units === Units.US) {
 			if (nominalCount < 0.9144) {
 				suffix = 'in';
 				pointResolution *= 39.37;
@@ -254,7 +269,8 @@ export default class ScaleLine extends Control {
 
 		let i = 3 * Math.floor(
 			Math.log(this.minWidth_ * pointResolution) / Math.log(10));
-		let count, width;
+		let count;
+		let width;
 		while (true) {
 			count = LEADING_DIGITS[((i % 3) + 3) % 3] *
 				Math.pow(10, Math.floor(i / 3));
@@ -270,12 +286,12 @@ export default class ScaleLine extends Control {
 		}
 
 		const html = count + ' ' + suffix;
-		if (this.renderedHTML_ != html) {
+		if (this.renderedHTML_ !== html) {
 			this.innerElement_.innerHTML = html;
 			this.renderedHTML_ = html;
 		}
 
-		if (this.renderedWidth_ != width) {
+		if (this.renderedWidth_ !== width) {
 			this.innerElement_.style.width = width + 'px';
 			this.renderedWidth_ = width;
 		}
@@ -285,20 +301,11 @@ export default class ScaleLine extends Control {
 			this.renderedVisible_ = true;
 		}
 	}
-}
 
-/**
- * Update the scale line element.
- * @param {module:ol/MapEvent} mapEvent Map event.
- * @this {module:ol/control/ScaleLine}
- * @api
- */
-export function render(mapEvent: MapEvent) {
-	const frameState = mapEvent.frameState;
-	if (!frameState) {
-		this.viewState_ = null;
-	} else {
-		this.viewState_ = frameState.viewState;
+	/**
+	 * @private
+	 */
+	private handleUnitsChanged_() {
+		this.updateElement_();
 	}
-	this.updateElement_();
 }

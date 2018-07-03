@@ -134,8 +134,8 @@ export default abstract class XMLFeature extends FeatureFormat {
 	 * @param {module:ol/format/Feature~WriteOptions=} opt_options Options.
 	 * @return {Node} Node.
 	 */
-	public writeFeaturesNode(_features: Feature[], _opt_options?: WriteOptions) {
-		return null; // not implemented
+	public writeFeaturesNode(_features: Feature[], _opt_options?: WriteOptions): Node {
+		return null!; // not implemented
 	}
 
 	/**

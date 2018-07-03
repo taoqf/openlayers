@@ -70,7 +70,7 @@ export default class Rotate extends Control {
 	 * @private
 	 * @type {number|undefined}
 	 */
-	private rotation_: undefined;
+	private rotation_: number | undefined;
 	constructor(opt_options?: Partial<Options>) {
 
 		const options = opt_options ? opt_options : {};

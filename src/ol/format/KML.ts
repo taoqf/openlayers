@@ -1,7 +1,6 @@
 /**
  * @module ol/format/KML
  */
-import { inherits } from '../index';
 import Feature from '../Feature';
 import { extend, includes } from '../array';
 import { assert } from '../asserts';
@@ -861,9 +860,9 @@ function writeCoordinatesTextNode(node: Element, coordinates: number[], objectSt
  */
 const EXTENDEDDATA_NODE_SERIALIZERS = makeStructureNS(
 	NAMESPACE_URIS, {
-		'Data': makeChildAppender(writeDataNode),
-		'value': makeChildAppender(writeDataNodeValue),
-		'displayName': makeChildAppender(writeDataNodeName)
+		Data: makeChildAppender(writeDataNode),
+		displayName: makeChildAppender(writeDataNodeName),
+		value: makeChildAppender(writeDataNodeValue)
 	});
 
 
@@ -872,7 +871,7 @@ const EXTENDEDDATA_NODE_SERIALIZERS = makeStructureNS(
  * @param {{name: *, value: *}} pair Name value pair.
  * @param {Array.<*>} objectStack Object stack.
  */
-function writeDataNode(node, pair, objectStack) {
+function writeDataNode(node: Element, pair: { name: any; value: any; }, objectStack: any[]) {
 	node.setAttribute('name', pair.name);
 	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const value = pair.value;
@@ -898,7 +897,7 @@ function writeDataNode(node, pair, objectStack) {
  * @param {Node} node Node to append a TextNode with the name to.
  * @param {string} name DisplayName.
  */
-function writeDataNodeName(node, name) {
+function writeDataNodeName(node: Node, name: string) {
 	writeCDATASection(node, name);
 }
 
@@ -907,7 +906,7 @@ function writeDataNodeName(node, name) {
  * @param {Node} node Node to append a CDATA Section with the value to.
  * @param {string} value Value.
  */
-function writeDataNodeValue(node, value) {
+function writeDataNodeValue(node: Node, value: string) {
 	writeStringTextNode(node, value);
 }
 
@@ -918,7 +917,7 @@ function writeDataNodeValue(node, value) {
  */
 const DOCUMENT_SERIALIZERS = makeStructureNS(
 	NAMESPACE_URIS, {
-		'Placemark': makeChildAppender(writePlacemark)
+		Placemark: makeChildAppender(writePlacemark)
 	});
 
 
@@ -929,10 +928,10 @@ const DOCUMENT_SERIALIZERS = makeStructureNS(
  * @param {string=} opt_nodeName Node name.
  * @return {Node|undefined} Node.
  */
-const DOCUMENT_NODE_FACTORY = function (value, objectStack, opt_nodeName) {
+const DOCUMENT_NODE_FACTORY = ((_value: any, objectStack: any[], _opt_nodeName?: string) => {
 	const parentNode = objectStack[objectStack.length - 1].node;
 	return createElementNS(parentNode.namespaceURI, 'Placemark');
-};
+});
 
 
 /**
@@ -941,11 +940,10 @@ const DOCUMENT_NODE_FACTORY = function (value, objectStack, opt_nodeName) {
  * @param {Array.<*>} objectStack Object stack.
  * @this {module:ol/format/KML}
  */
-function writeDocument(node, features, objectStack) {
+function writeDocument(_node: Node, features: Feature[], objectStack: any[]) {
 	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	pushSerializeAndPop(context, DOCUMENT_SERIALIZERS,
-		DOCUMENT_NODE_FACTORY, features, objectStack, undefined,
-		this);
+		DOCUMENT_NODE_FACTORY, features, objectStack, undefined);
 }
 
 
@@ -962,7 +960,7 @@ const DATA_NODE_FACTORY = makeSimpleNodeFactory('Data');
  * @param {{names: Array<string>, values: (Array<*>)}} namesAndValues Names and values.
  * @param {Array.<*>} objectStack Object stack.
  */
-function writeExtendedData(node, namesAndValues, objectStack) {
+function writeExtendedData(_node: Node, namesAndValues: { names: string[]; values: any[]; }, objectStack: any[]) {
 	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const names = namesAndValues.names;
 	const values = namesAndValues.values;
@@ -994,13 +992,13 @@ const ICON_SEQUENCE = makeStructureNS(
  */
 const ICON_SERIALIZERS = makeStructureNS(
 	NAMESPACE_URIS, {
-		'href': makeChildAppender(writeStringTextNode)
+		href: makeChildAppender(writeStringTextNode)
 	}, makeStructureNS(
 		GX_NAMESPACE_URIS, {
-			'x': makeChildAppender(writeDecimalTextNode),
-			'y': makeChildAppender(writeDecimalTextNode),
-			'w': makeChildAppender(writeDecimalTextNode),
-			'h': makeChildAppender(writeDecimalTextNode)
+			h: makeChildAppender(writeDecimalTextNode),
+			w: makeChildAppender(writeDecimalTextNode),
+			x: makeChildAppender(writeDecimalTextNode),
+			y: makeChildAppender(writeDecimalTextNode)
 		}));
 
 
@@ -1022,7 +1020,7 @@ const GX_NODE_FACTORY = function (value, objectStack, opt_nodeName) {
  * @param {Object} icon Icon object.
  * @param {Array.<*>} objectStack Object stack.
  */
-function writeIcon(node, icon, objectStack) {
+function writeIcon(node: Node, icon: any, objectStack: any[]) {
 	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const parentNode = objectStack[objectStack.length - 1].node;
 	let orderedKeys = ICON_SEQUENCE[parentNode.namespaceURI];
@@ -1066,7 +1064,7 @@ const ICON_STYLE_SERIALIZERS = makeStructureNS(
  * @param {module:ol/style/Icon} style Icon style.
  * @param {Array.<*>} objectStack Object stack.
  */
-function writeIconStyle(node, style, objectStack) {
+function writeIconStyle(node: Node, style: Iconsty, objectStack) {
 	const /** @type {module:ol/xml~NodeStackItem} */ context = { node: Element };
 	const properties = {};
 	const src = style.getSrc();

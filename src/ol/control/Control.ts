@@ -59,7 +59,7 @@ export default class Control extends BaseObject {
 	 * @protected
 	 * @type {Element}
 	 */
-	protected element: Element;
+	protected element: HTMLElement;
 	protected listenerKeys: EventsKey[];
 	protected render: (e: MapEvent) => void;
 	/**

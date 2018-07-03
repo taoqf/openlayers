@@ -3,7 +3,7 @@
  */
 import { assert } from '../asserts';
 import { asArray, Color } from '../color';
-import { EventsKey, listen, unlisten } from '../events';
+import { listen, unlisten } from '../events';
 import Event from '../events/Event';
 import EventType from '../events/EventType';
 import ImageState from '../ImageState';
