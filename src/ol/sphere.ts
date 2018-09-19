@@ -9,9 +9,13 @@
  * @module ol/sphere
  */
 import { Coordinate } from './coordinate';
+import Geometry from './geom/Geometry';
+import GeometryCollection from './geom/GeometryCollection';
 import GeometryType from './geom/GeometryType';
+import Polygon from './geom/Polygon';
+import SimpleGeometry from './geom/SimpleGeometry';
 import { toDegrees, toRadians } from './math';
-
+import { ProjectionLike } from './proj';
 
 /**
  * Object literal with options for the {@link getLength} or {@link getArea}
@@ -23,7 +27,10 @@ import { toDegrees, toRadians } from './math';
  * @property {number} [radius=6371008.8] Sphere radius.  By default, the radius of the
  * earth is used (Clarke 1866 Authalic Sphere).
  */
-
+export interface SphereMetricOptions {
+	projection: ProjectionLike;
+	radius: number;
+}
 
 /**
  * The mean Earth radius (1/3 * (2a + b)) for the WGS84 ellipsoid.
@@ -82,7 +89,7 @@ function getLengthInternal(coordinates: Coordinate[], radius: number) {
  * @return {number} The spherical length (in meters).
  * @api
  */
-export function getLength(geometry, opt_options) {
+export function getLength(geometry: Geometry, opt_options?: Partial<SphereMetricOptions>) {
 	const options = opt_options || {};
 	const radius = options.radius || DEFAULT_RADIUS;
 	const projection = options.projection || 'EPSG:3857';
@@ -91,7 +98,6 @@ export function getLength(geometry, opt_options) {
 		geometry = geometry.clone().transform(projection, 'EPSG:4326');
 	}
 	let length = 0;
-	let coordinates, coords, i, ii, j, jj;
 	switch (type) {
 		case GeometryType.POINT:
 		case GeometryType.MULTI_POINT: {
@@ -99,31 +105,31 @@ export function getLength(geometry, opt_options) {
 		}
 		case GeometryType.LINE_STRING:
 		case GeometryType.LINEAR_RING: {
-			coordinates = /** @type {module:ol/geom/SimpleGeometry} */ (geometry).getCoordinates();
+			const coordinates = /** @type {module:ol/geom/SimpleGeometry} */ (geometry as SimpleGeometry).getCoordinates() as Coordinate[];
 			length = getLengthInternal(coordinates, radius);
 			break;
 		}
 		case GeometryType.MULTI_LINE_STRING:
 		case GeometryType.POLYGON: {
-			coordinates = /** @type {module:ol/geom/SimpleGeometry} */ (geometry).getCoordinates();
-			for (i = 0, ii = coordinates.length; i < ii; ++i) {
-				length += getLengthInternal(coordinates[i], radius);
+			const coordinates = /** @type {module:ol/geom/SimpleGeometry} */ (geometry as SimpleGeometry).getCoordinates() as number[][][];
+			for (let i = 0, ii = coordinates.length; i < ii; ++i) {
+				length += getLengthInternal(coordinates[i] as Coordinate[], radius);
 			}
 			break;
 		}
 		case GeometryType.MULTI_POLYGON: {
-			coordinates = /** @type {module:ol/geom/SimpleGeometry} */ (geometry).getCoordinates();
-			for (i = 0, ii = coordinates.length; i < ii; ++i) {
-				coords = coordinates[i];
-				for (j = 0, jj = coords.length; j < jj; ++j) {
+			const coordinates = /** @type {module:ol/geom/SimpleGeometry} */ (geometry as SimpleGeometry).getCoordinates() as number[][][][];
+			for (let i = 0, ii = coordinates.length; i < ii; ++i) {
+				const coords = coordinates[i] as Coordinate[][];
+				for (let j = 0, jj = coords.length; j < jj; ++j) {
 					length += getLengthInternal(coords[j], radius);
 				}
 			}
 			break;
 		}
 		case GeometryType.GEOMETRY_COLLECTION: {
-			const geometries = /** @type {module:ol/geom/GeometryCollection} */ (geometry).getGeometries();
-			for (i = 0, ii = geometries.length; i < ii; ++i) {
+			const geometries = /** @type {module:ol/geom/GeometryCollection} */ (geometry as GeometryCollection).getGeometries();
+			for (let i = 0, ii = geometries.length; i < ii; ++i) {
 				length += getLength(geometries[i], opt_options);
 			}
 			break;
@@ -178,7 +184,7 @@ function getAreaInternal(coordinates: Coordinate[], radius: number) {
  * @return {number} The spherical area (in square meters).
  * @api
  */
-export function getArea(geometry, opt_options) {
+export function getArea(geometry: Geometry, opt_options?: Partial<SphereMetricOptions>) {
 	const options = opt_options || {};
 	const radius = options.radius || DEFAULT_RADIUS;
 	const projection = options.projection || 'EPSG:3857';
@@ -187,7 +193,8 @@ export function getArea(geometry, opt_options) {
 		geometry = geometry.clone().transform(projection, 'EPSG:4326');
 	}
 	let area = 0;
-	let coordinates, coords, i, ii, j, jj;
+	// let coordinates;
+	// let coords, i, ii, j, jj;
 	switch (type) {
 		case GeometryType.POINT:
 		case GeometryType.MULTI_POINT:
@@ -197,27 +204,27 @@ export function getArea(geometry, opt_options) {
 			break;
 		}
 		case GeometryType.POLYGON: {
-			coordinates = /** @type {module:ol/geom/Polygon} */ (geometry).getCoordinates();
+			const coordinates = /** @type {module:ol/geom/Polygon} */ (geometry as Polygon).getCoordinates();
 			area = Math.abs(getAreaInternal(coordinates[0], radius));
-			for (i = 1, ii = coordinates.length; i < ii; ++i) {
+			for (let i = 1, ii = coordinates.length; i < ii; ++i) {
 				area -= Math.abs(getAreaInternal(coordinates[i], radius));
 			}
 			break;
 		}
 		case GeometryType.MULTI_POLYGON: {
-			coordinates = /** @type {module:ol/geom/SimpleGeometry} */ (geometry).getCoordinates();
-			for (i = 0, ii = coordinates.length; i < ii; ++i) {
-				coords = coordinates[i];
+			const coordinates = /** @type {module:ol/geom/SimpleGeometry} */ (geometry as SimpleGeometry).getCoordinates() as number[][][][];
+			for (let i = 0, ii = coordinates.length; i < ii; ++i) {
+				const coords = coordinates[i] as Coordinate[][];
 				area += Math.abs(getAreaInternal(coords[0], radius));
-				for (j = 1, jj = coords.length; j < jj; ++j) {
+				for (let j = 1, jj = coords.length; j < jj; ++j) {
 					area -= Math.abs(getAreaInternal(coords[j], radius));
 				}
 			}
 			break;
 		}
 		case GeometryType.GEOMETRY_COLLECTION: {
-			const geometries = /** @type {module:ol/geom/GeometryCollection} */ (geometry).getGeometries();
-			for (i = 0, ii = geometries.length; i < ii; ++i) {
+			const geometries = /** @type {module:ol/geom/GeometryCollection} */ (geometry as GeometryCollection).getGeometries();
+			for (let i = 0, ii = geometries.length; i < ii; ++i) {
 				area += getArea(geometries[i], opt_options);
 			}
 			break;

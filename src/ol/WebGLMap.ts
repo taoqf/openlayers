@@ -1,16 +1,14 @@
 /**
  * @module ol/WebGLMap
  */
-import {inherits} from './index';
-import PluggableMap from './PluggableMap';
-import {defaults as defaultControls} from './control';
-import {defaults as defaultInteractions} from './interaction';
-import {assign} from './obj';
+import { defaults as defaultControls } from './control';
+import { defaults as defaultInteractions } from './interaction';
+import { assign } from './obj';
+import PluggableMap, { MapOptions } from './PluggableMap';
 import WebGLImageLayerRenderer from './renderer/webgl/ImageLayer';
 import WebGLMapRenderer from './renderer/webgl/Map';
 import WebGLTileLayerRenderer from './renderer/webgl/TileLayer';
 import WebGLVectorLayerRenderer from './renderer/webgl/VectorLayer';
-
 
 /**
  * @classdesc
@@ -66,29 +64,26 @@ import WebGLVectorLayerRenderer from './renderer/webgl/VectorLayer';
  * @fires module:ol/render/Event~RenderEvent#precompose
  * @api
  */
-const WebGLMap = function(options) {
-  options = assign({}, options);
-  if (!options.controls) {
-    options.controls = defaultControls();
-  }
-  if (!options.interactions) {
-    options.interactions = defaultInteractions();
-  }
+export default class WebGLMap extends PluggableMap {
+	constructor(options: Partial<MapOptions>) {
+		super(options);
+		options = assign({}, options);
+		if (!options.controls) {
+			options.controls = defaultControls();
+		}
+		if (!options.interactions) {
+			options.interactions = defaultInteractions();
+		}
 
-  PluggableMap.call(this, options);
-};
+	}
 
-inherits(WebGLMap, PluggableMap);
-
-
-WebGLMap.prototype.createRenderer = function() {
-  const renderer = new WebGLMapRenderer(this);
-  renderer.registerLayerRenderers([
-    WebGLImageLayerRenderer,
-    WebGLTileLayerRenderer,
-    WebGLVectorLayerRenderer
-  ]);
-  return renderer;
-};
-
-export default WebGLMap;
+	public createRenderer() {
+		const renderer = new WebGLMapRenderer(this);
+		renderer.registerLayerRenderers([
+			WebGLImageLayerRenderer,
+			WebGLTileLayerRenderer,
+			WebGLVectorLayerRenderer
+		]);
+		return renderer;
+	}
+}

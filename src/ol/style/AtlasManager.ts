@@ -158,7 +158,7 @@ export default class AtlasManager {
 	 * @return {?module:ol/style/AtlasManager~AtlasManagerInfo}  The position and atlas image for the
 	 *    entry, or `null` if the image is too big.
 	 */
-	public add<T>(id: string, width: number, height: number, renderCallback: (this: T, context: CanvasRenderingContext2D, width: number, height: number) => void, opt_renderHitCallback: (this: T, context: CanvasRenderingContext2D, width: number, height: number) => void, opt_this?: T) {
+	public add<T>(id: string, width: number, height: number, renderCallback: (this: T, context: CanvasRenderingContext2D, width: number, height: number) => void, opt_renderHitCallback?: (this: T, context: CanvasRenderingContext2D, width: number, height: number) => void, opt_this?: T) {
 		if (width + this.space > this.maxSize ||
 			height + this.space > this.maxSize) {
 			return null;

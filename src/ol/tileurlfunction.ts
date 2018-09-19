@@ -1,9 +1,12 @@
 /**
  * @module ol/tileurlfunction
  */
-import {assert} from './asserts';
-import {modulo} from './math';
-import {hash as tileCoordHash} from './tilecoord';
+import { assert } from './asserts';
+import { modulo } from './math';
+import Projection from './proj/Projection';
+import { UrlFunction } from './Tile';
+import { hash as tileCoordHash, TileCoord } from './tilecoord';
+import TileGrid from './tilegrid/TileGrid';
 
 
 /**
@@ -11,38 +14,38 @@ import {hash as tileCoordHash} from './tilecoord';
  * @param {module:ol/tilegrid/TileGrid} tileGrid Tile grid.
  * @return {module:ol/Tile~UrlFunction} Tile URL function.
  */
-export function createFromTemplate(template, tileGrid) {
-  const zRegEx = /\{z\}/g;
-  const xRegEx = /\{x\}/g;
-  const yRegEx = /\{y\}/g;
-  const dashYRegEx = /\{-y\}/g;
-  return (
-    /**
-     * @param {module:ol/tilecoord~TileCoord} tileCoord Tile Coordinate.
-     * @param {number} pixelRatio Pixel ratio.
-     * @param {module:ol/proj/Projection} projection Projection.
-     * @return {string|undefined} Tile URL.
-     */
-    function(tileCoord, pixelRatio, projection) {
-      if (!tileCoord) {
-        return undefined;
-      } else {
-        return template.replace(zRegEx, tileCoord[0].toString())
-          .replace(xRegEx, tileCoord[1].toString())
-          .replace(yRegEx, function() {
-            const y = -tileCoord[2] - 1;
-            return y.toString();
-          })
-          .replace(dashYRegEx, function() {
-            const z = tileCoord[0];
-            const range = tileGrid.getFullTileRange(z);
-            assert(range, 55); // The {-y} placeholder requires a tile grid with extent
-            const y = range.getHeight() + tileCoord[2];
-            return y.toString();
-          });
-      }
-    }
-  );
+export function createFromTemplate(template: string, tileGrid: TileGrid): UrlFunction {
+	const zRegEx = /\{z\}/g;
+	const xRegEx = /\{x\}/g;
+	const yRegEx = /\{y\}/g;
+	const dashYRegEx = /\{-y\}/g;
+	return (
+		/**
+		 * @param {module:ol/tilecoord~TileCoord} tileCoord Tile Coordinate.
+		 * @param {number} pixelRatio Pixel ratio.
+		 * @param {module:ol/proj/Projection} projection Projection.
+		 * @return {string|undefined} Tile URL.
+		 */
+		(tileCoord: TileCoord, _pixelRatio: number, _projection: Projection) => {
+			if (!tileCoord) {
+				return undefined;
+			} else {
+				return template.replace(zRegEx, tileCoord[0].toString())
+					.replace(xRegEx, tileCoord[1].toString())
+					.replace(yRegEx, () => {
+						const y = -tileCoord[2] - 1;
+						return y.toString();
+					})
+					.replace(dashYRegEx, () => {
+						const z = tileCoord[0];
+						const range = tileGrid.getFullTileRange(z);
+						assert(range, 55); // The {-y} placeholder requires a tile grid with extent
+						const y = range.getHeight() + tileCoord[2];
+						return y.toString();
+					});
+			}
+		}
+	);
 }
 
 
@@ -51,13 +54,13 @@ export function createFromTemplate(template, tileGrid) {
  * @param {module:ol/tilegrid/TileGrid} tileGrid Tile grid.
  * @return {module:ol/Tile~UrlFunction} Tile URL function.
  */
-export function createFromTemplates(templates, tileGrid) {
-  const len = templates.length;
-  const tileUrlFunctions = new Array(len);
-  for (let i = 0; i < len; ++i) {
-    tileUrlFunctions[i] = createFromTemplate(templates[i], tileGrid);
-  }
-  return createFromTileUrlFunctions(tileUrlFunctions);
+export function createFromTemplates(templates: string[], tileGrid: TileGrid) {
+	const len = templates.length;
+	const tileUrlFunctions = new Array(len);
+	for (let i = 0; i < len; ++i) {
+		tileUrlFunctions[i] = createFromTemplate(templates[i], tileGrid);
+	}
+	return createFromTileUrlFunctions(tileUrlFunctions);
 }
 
 
@@ -65,27 +68,27 @@ export function createFromTemplates(templates, tileGrid) {
  * @param {Array.<module:ol/Tile~UrlFunction>} tileUrlFunctions Tile URL Functions.
  * @return {module:ol/Tile~UrlFunction} Tile URL function.
  */
-export function createFromTileUrlFunctions(tileUrlFunctions) {
-  if (tileUrlFunctions.length === 1) {
-    return tileUrlFunctions[0];
-  }
-  return (
-    /**
-     * @param {module:ol/tilecoord~TileCoord} tileCoord Tile Coordinate.
-     * @param {number} pixelRatio Pixel ratio.
-     * @param {module:ol/proj/Projection} projection Projection.
-     * @return {string|undefined} Tile URL.
-     */
-    function(tileCoord, pixelRatio, projection) {
-      if (!tileCoord) {
-        return undefined;
-      } else {
-        const h = tileCoordHash(tileCoord);
-        const index = modulo(h, tileUrlFunctions.length);
-        return tileUrlFunctions[index](tileCoord, pixelRatio, projection);
-      }
-    }
-  );
+export function createFromTileUrlFunctions(tileUrlFunctions: UrlFunction[]) {
+	if (tileUrlFunctions.length === 1) {
+		return tileUrlFunctions[0];
+	}
+	return (
+		/**
+		 * @param {module:ol/tilecoord~TileCoord} tileCoord Tile Coordinate.
+		 * @param {number} pixelRatio Pixel ratio.
+		 * @param {module:ol/proj/Projection} projection Projection.
+		 * @return {string|undefined} Tile URL.
+		 */
+		(tileCoord: TileCoord, pixelRatio: number, projection: Projection) => {
+			if (!tileCoord) {
+				return undefined;
+			} else {
+				const h = tileCoordHash(tileCoord);
+				const index = modulo(h, tileUrlFunctions.length);
+				return tileUrlFunctions[index](tileCoord, pixelRatio, projection);
+			}
+		}
+	);
 }
 
 
@@ -95,8 +98,8 @@ export function createFromTileUrlFunctions(tileUrlFunctions) {
  * @param {module:ol/proj/Projection} projection Projection.
  * @return {string|undefined} Tile URL.
  */
-export function nullTileUrlFunction(tileCoord, pixelRatio, projection) {
-  return undefined;
+export function nullTileUrlFunction(_tileCoord: TileCoord, _pixelRatio: number, _projection: Projection): string | undefined {
+	return undefined;
 }
 
 
@@ -104,28 +107,28 @@ export function nullTileUrlFunction(tileCoord, pixelRatio, projection) {
  * @param {string} url URL.
  * @return {Array.<string>} Array of urls.
  */
-export function expandUrl(url) {
-  const urls = [];
-  let match = /\{([a-z])-([a-z])\}/.exec(url);
-  if (match) {
-    // char range
-    const startCharCode = match[1].charCodeAt(0);
-    const stopCharCode = match[2].charCodeAt(0);
-    let charCode;
-    for (charCode = startCharCode; charCode <= stopCharCode; ++charCode) {
-      urls.push(url.replace(match[0], String.fromCharCode(charCode)));
-    }
-    return urls;
-  }
-  match = match = /\{(\d+)-(\d+)\}/.exec(url);
-  if (match) {
-    // number range
-    const stop = parseInt(match[2], 10);
-    for (let i = parseInt(match[1], 10); i <= stop; i++) {
-      urls.push(url.replace(match[0], i.toString()));
-    }
-    return urls;
-  }
-  urls.push(url);
-  return urls;
+export function expandUrl(url: string) {
+	const urls = [];
+	let match = /\{([a-z])-([a-z])\}/.exec(url);
+	if (match) {
+		// char range
+		const startCharCode = match[1].charCodeAt(0);
+		const stopCharCode = match[2].charCodeAt(0);
+		let charCode;
+		for (charCode = startCharCode; charCode <= stopCharCode; ++charCode) {
+			urls.push(url.replace(match[0], String.fromCharCode(charCode)));
+		}
+		return urls;
+	}
+	match = match = /\{(\d+)-(\d+)\}/.exec(url);
+	if (match) {
+		// number range
+		const stop = parseInt(match[2], 10);
+		for (let i = parseInt(match[1], 10); i <= stop; i++) {
+			urls.push(url.replace(match[0], i.toString()));
+		}
+		return urls;
+	}
+	urls.push(url);
+	return urls;
 }

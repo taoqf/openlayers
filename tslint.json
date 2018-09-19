@@ -4,9 +4,8 @@
 		"./src/"
 	],
 	"rules": {
-		"max-classes-per-file": [
-			false
-		],
+		"forin": false,
+		"max-classes-per-file": false,
 		"whitespace": [
 			true,
 			"check-branch",

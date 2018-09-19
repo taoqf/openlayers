@@ -1,3 +1,5 @@
+import { Color } from '../color';
+
 /**
  * @module ol/render/webgl
  */
@@ -14,7 +16,7 @@ export const DEFAULT_FONT = '10px sans-serif';
  * @const
  * @type {module:ol/color~Color}
  */
-export const DEFAULT_FILLSTYLE = [0.0, 0.0, 0.0, 1.0];
+export const DEFAULT_FILLSTYLE = [0.0, 0.0, 0.0, 1.0] as Color;
 
 
 /**
@@ -28,7 +30,7 @@ export const DEFAULT_LINECAP = 'round';
  * @const
  * @type {Array.<number>}
  */
-export const DEFAULT_LINEDASH = [];
+export const DEFAULT_LINEDASH = [] as number[];
 
 
 /**
@@ -55,7 +57,7 @@ export const DEFAULT_MITERLIMIT = 10;
  * @const
  * @type {module:ol/color~Color}
  */
-export const DEFAULT_STROKESTYLE = [0.0, 0.0, 0.0, 1.0];
+export const DEFAULT_STROKESTYLE = [0.0, 0.0, 0.0, 1.0] as Color;
 
 
 /**
@@ -94,9 +96,9 @@ export const EPSILON = Number.EPSILON || 2.220446049250313e-16;
  * @param {number} y3 Third Y coordinate.
  * @return {boolean|undefined} Triangle is clockwise.
  */
-export const triangleIsCounterClockwise = function(x1, y1, x2, y2, x3, y3) {
-  const area = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1);
-  return (area <= EPSILON && area >= -EPSILON) ?
-    undefined : area > 0;
+export const triangleIsCounterClockwise = (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): boolean | undefined => {
+	const area = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1);
+	return (area <= EPSILON && area >= -EPSILON) ?
+		undefined : area > 0;
 };
 

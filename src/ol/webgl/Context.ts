@@ -35,6 +35,7 @@ export interface BufferCacheEntry {
  * @param {WebGLRenderingContext} gl GL.
  */
 export default class WebGLContext extends Disposable {
+	public hasOESElementIndexUint: boolean;
 	private canvas_: HTMLCanvasElement;
 	private gl_: WebGLRenderingContext;
 	private bufferCache_: { [key: string]: BufferCacheEntry; };
@@ -44,7 +45,6 @@ export default class WebGLContext extends Disposable {
 	private hitDetectionFramebuffer_: WebGLFramebuffer | null;
 	private hitDetectionTexture_: WebGLTexture | null;
 	private hitDetectionRenderbuffer_: WebGLRenderbuffer | null;
-	private hasOESElementIndexUint: boolean;
 	constructor(canvas: HTMLCanvasElement, gl: WebGLRenderingContext) {
 		super();
 		/**

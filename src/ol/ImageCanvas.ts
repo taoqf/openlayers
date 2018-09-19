@@ -1,10 +1,9 @@
 /**
  * @module ol/ImageCanvas
  */
-import {inherits} from './index';
+import { Extent } from './extent';
 import ImageBase from './ImageBase';
 import ImageState from './ImageState';
-
 
 /**
  * A function that is called to trigger asynchronous canvas drawing.  It is
@@ -14,7 +13,7 @@ import ImageState from './ImageState';
  *
  * @typedef {function(function(Error))} Loader
  */
-
+export type Loader = (callback: (e: Error) => void) => void;
 
 /**
  * @constructor
@@ -26,77 +25,72 @@ import ImageState from './ImageState';
  * @param {module:ol/ImageCanvas~Loader=} opt_loader Optional loader function to
  *     support asynchronous canvas drawing.
  */
-const ImageCanvas = function(extent, resolution, pixelRatio, canvas, opt_loader) {
+export default class ImageCanvas extends ImageBase {
+	private loader_: Loader;
+	private canvas_: HTMLCanvasElement;
+	private error_: Error | null;
+	constructor(extent: Extent, resolution: number, pixelRatio: number, canvas: HTMLCanvasElement, opt_loader?: Loader) {
+		super(extent, resolution, pixelRatio, opt_loader !== undefined ? ImageState.IDLE : ImageState.LOADED);
+		/**
+		 * Optional canvas loader function.
+		 * @type {?module:ol/ImageCanvas~Loader}
+		 * @private
+		 */
+		this.loader_ = opt_loader !== undefined ? opt_loader : null;
 
-  /**
-   * Optional canvas loader function.
-   * @type {?module:ol/ImageCanvas~Loader}
-   * @private
-   */
-  this.loader_ = opt_loader !== undefined ? opt_loader : null;
+		/**
+		 * @private
+		 * @type {HTMLCanvasElement}
+		 */
+		this.canvas_ = canvas;
 
-  const state = opt_loader !== undefined ? ImageState.IDLE : ImageState.LOADED;
+		/**
+		 * @private
+		 * @type {Error}
+		 */
+		this.error_ = null;
 
-  ImageBase.call(this, extent, resolution, pixelRatio, state);
+	}
 
-  /**
-   * @private
-   * @type {HTMLCanvasElement}
-   */
-  this.canvas_ = canvas;
+	/**
+	 * Get any error associated with asynchronous rendering.
+	 * @return {Error} Any error that occurred during rendering.
+	 */
+	public getError() {
+		return this.error_;
+	}
 
-  /**
-   * @private
-   * @type {Error}
-   */
-  this.error_ = null;
-
-};
-
-inherits(ImageCanvas, ImageBase);
-
-
-/**
- * Get any error associated with asynchronous rendering.
- * @return {Error} Any error that occurred during rendering.
- */
-ImageCanvas.prototype.getError = function() {
-  return this.error_;
-};
-
-
-/**
- * Handle async drawing complete.
- * @param {Error} err Any error during drawing.
- * @private
- */
-ImageCanvas.prototype.handleLoad_ = function(err) {
-  if (err) {
-    this.error_ = err;
-    this.state = ImageState.ERROR;
-  } else {
-    this.state = ImageState.LOADED;
-  }
-  this.changed();
-};
+	/**
+	 * @inheritDoc
+	 */
+	public load() {
+		if (this.state === ImageState.IDLE) {
+			this.state = ImageState.LOADING;
+			this.changed();
+			this.loader_(this.handleLoad_.bind(this));
+		}
+	}
 
 
-/**
- * @inheritDoc
- */
-ImageCanvas.prototype.load = function() {
-  if (this.state == ImageState.IDLE) {
-    this.state = ImageState.LOADING;
-    this.changed();
-    this.loader_(this.handleLoad_.bind(this));
-  }
-};
+	/**
+	 * @return {HTMLCanvasElement} Canvas element.
+	 */
+	public getImage() {
+		return this.canvas_;
+	}
 
-
-/**
- * @return {HTMLCanvasElement} Canvas element.
- */
-ImageCanvas.prototype.getImage = function() {
-  return this.canvas_;
-};
-export default ImageCanvas;
+	/**
+	 * Handle async drawing complete.
+	 * @param {Error} err Any error during drawing.
+	 * @private
+	 */
+	private handleLoad_(err: Error) {
+		if (err) {
+			this.error_ = err;
+			this.state = ImageState.ERROR;
+		} else {
+			this.state = ImageState.LOADED;
+		}
+		this.changed();
+	}
+}

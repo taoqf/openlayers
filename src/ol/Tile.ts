@@ -7,6 +7,7 @@ import EventType from './events/EventType';
 import Projection from './proj/Projection';
 import { TileCoord } from './tilecoord';
 import TileState from './TileState';
+import { Extent } from './extent';
 
 
 /**
@@ -34,7 +35,7 @@ export type LoadFunction = (tile: Tile, s: string) => void;
  * @api
  */
 
-export type UrlFunction = (tileCoord: TileCoord, n: number, proj: Projection) => void;
+export type UrlFunction = (tileCoord: TileCoord, n: number, proj: Projection) => string;
 
 /**
  * @typedef {Object} Options
@@ -59,19 +60,14 @@ export interface Options {
  * @param {module:ol/Tile~Options=} opt_options Tile options.
  */
 export default abstract class Tile extends EventTarget {
-	extent(arg0: any, arg1: any, arg2: any): any {
-		throw new Error('Method not implemented.');
-	}
-	getTile(arg0: any): any {
-		throw new Error('Method not implemented.');
-	}
 	public tileCoord: TileCoord;
 	public state: TileState;
 	public interimTile: Tile | null;
 	public key: string;
-	private transition_: number;
-	private transitionStarts_: { [key: number]: number };
-	tileKeys: any;
+	protected extent: Extent | null;
+	protected transition_: number;
+	protected transitionStarts_: { [key: number]: number };
+	// tileKeys: any;
 	constructor(tileCoord: TileCoord, state: TileState, opt_options?: Partial<Options>) {
 		super();
 
@@ -272,10 +268,17 @@ export default abstract class Tile extends EventTarget {
 		}
 	}
 
+	public getImage(): HTMLCanvasElement | HTMLImageElement | HTMLVideoElement | ImageBitmap {
+		throw new Error('Method not implemented.');
+	}
 	/**
 	 * @protected
 	 */
 	protected changed() {
 		this.dispatchEvent(EventType.CHANGE);
+	}
+
+	protected getTile(_tileKey: string): any {
+		throw new Error('Method not implemented.');
 	}
 }
