@@ -25,4 +25,6 @@ export default abstract class ReplayGroup {
 	 * @return {boolean} Is empty.
 	 */
 	public abstract isEmpty(): boolean;
+
+	public abstract addDeclutter(group: boolean): any[];
 }

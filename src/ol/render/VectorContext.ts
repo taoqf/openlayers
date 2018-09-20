@@ -36,7 +36,7 @@ export default abstract class VectorContext {
 	 * @param {module:ol/Feature|module:ol/render/Feature} feature Feature.
 	 * @param {Function} renderer Renderer.
 	 */
-	public abstract drawCustom(geometry: SimpleGeometry, feature: Feature | RenderFeature, renderer: () => void): void;
+	public abstract drawCustom(geometry: SimpleGeometry, feature: Feature | RenderFeature, renderer: (...args: any[]) => void): void;
 
 	/**
 	 * Render a geometry.

@@ -135,7 +135,7 @@ export const defaultLineCap = 'round';
  * @const
  * @type {Array.<number>}
  */
-export const defaultLineDash = [];
+export const defaultLineDash = [] as number[];
 
 
 /**

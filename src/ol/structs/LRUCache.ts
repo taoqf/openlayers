@@ -273,7 +273,7 @@ export default class LRUCache<T> extends EventTarget {
 			newer: null,
 			older: this.newest,
 			value_: value
-		});
+		}) as Entry<T>;
 		if (!this.newest) {
 			this.oldest = entry;
 		} else {

@@ -8,6 +8,7 @@ import { LoadFunction, UrlFunction } from '../Tile';
 import { createXYZ, extentFromProjection } from '../tilegrid';
 import TileGrid from '../tilegrid/TileGrid';
 import { AttributionLike } from './Source';
+import SourceState from './State';
 
 /**
  * @typedef {Object} Options
@@ -65,6 +66,7 @@ export interface Options {
 	urls: string[];
 	wrapX: boolean;
 	transition: number;
+	state: SourceState;
 }
 
 

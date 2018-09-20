@@ -7,7 +7,6 @@ import { buffer, createOrUpdateFromCoordinate, Extent } from '../../extent';
 import Feature from '../../Feature';
 import { isEmpty } from '../../obj';
 import { Size } from '../../size';
-import Style from '../../style/Style';
 import WebGLContext from '../../webgl/Context';
 import RenderFeature from '../Feature';
 import { ORDER } from '../replay';
@@ -91,7 +90,9 @@ export default class WebGLReplayGroup extends ReplayGroup {
 	 * @param {module:ol/style/Style} style Style.
 	 * @param {boolean} group Group with previous replay.
 	 */
-	public addDeclutter(_style: Style, _group: boolean) { }
+	public addDeclutter(_group: boolean) {
+		return [] as any[];
+	}
 
 	/**
 	 * @param {module:ol/webgl/Context} context WebGL context.

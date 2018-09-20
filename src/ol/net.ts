@@ -15,7 +15,7 @@ import { getUid } from './index';
  * @param {string=} opt_callbackParam Custom query parameter for the JSONP
  *     callback. Default is 'callback'.
  */
-export function jsonp(url: string, callback: (data: any) => void, opt_errback?: () => void, opt_callbackParam?: () => void) {
+export function jsonp(url: string, callback: (data: any) => void, opt_errback?: () => void, opt_callbackParam?: string) {
 	const script = document.createElement('script');
 	const key = 'olc_' + getUid(callback as any);
 	function cleanup() {

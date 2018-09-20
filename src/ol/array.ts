@@ -159,7 +159,7 @@ export function remove<T>(arr: T[], obj: T) {
  * @template VALUE
  * @return {VALUE|null} The element found or null.
  */
-export function find<T, S extends T>(arr: T[], func: (value: T, index: number, obj: T[]) => value is S) {
+export function find<T>(arr: T[], func: (value: T, index: number, obj: T[]) => boolean) {
 	const length = arr.length >>> 0;
 
 	for (let i = 0; i < length; i++) {

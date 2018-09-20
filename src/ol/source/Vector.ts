@@ -593,7 +593,7 @@ export default class VectorSource extends Source {
 		// feature must intersect it.  We continue until we run out of features.
 		const x = coordinate[0];
 		const y = coordinate[1];
-		let closestFeature = null;
+		let closestFeature = null as Feature | null;
 		const closestPoint = [NaN, NaN];
 		let minSquaredDistance = Infinity;
 		const extent = [-Infinity, -Infinity, Infinity, Infinity] as Extent;
